@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
+    <Content Include="Assets\*.png" />
   </ItemGroup>
 
   <ItemGroup>

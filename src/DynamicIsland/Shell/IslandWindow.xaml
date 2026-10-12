@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:media="clr-namespace:DynamicIsland.Providers.Media"
         xmlns:views="clr-namespace:DynamicIsland.Views"
+        xmlns:notifications="clr-namespace:DynamicIsland.Providers.Notifications"
         Title="Dynamic Island"
         Width="440" Height="170"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
@@ -12,6 +13,9 @@
         <!-- One DataTemplate per activity type; new providers add theirs here. -->
         <DataTemplate DataType="{x:Type media:MediaActivity}">
             <views:MediaView IsExpanded="{Binding DataContext.IsExpanded, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type notifications:NotificationActivity}">
+            <views:NotificationView IsExpanded="{Binding DataContext.IsExpanded, RelativeSource={RelativeSource AncestorType=Window}}"/>
         </DataTemplate>
     </Window.Resources>
 

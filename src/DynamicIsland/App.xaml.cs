@@ -2,16 +2,16 @@ using System.Windows;
 using System.Windows.Controls;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Media;
+using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Shell;
 using H.NotifyIcon;
-using Microsoft.Win32;
+using Windows.ApplicationModel;
 
 namespace DynamicIsland;
 
 public partial class App : Application
 {
-    private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string RunValueName = "DynamicIsland";
+    private const string StartupTaskId = "DynamicIslandStartup";
 
     private Mutex? _singleInstance;
     private TaskbarIcon? _tray;
@@ -29,15 +29,21 @@ public partial class App : Application
         _window.Show();
         CreateTray();
 
-        // Providers are registered here; add notification / progress providers next to this line.
-        try { await hub.AddProviderAsync(new MediaActivityProvider()); }
-        catch (Exception ex) { MessageBox.Show($"Failed to start media provider:\n{ex.Message}", "Dynamic Island"); }
+        // Providers are registered here; add progress providers next to these lines.
+        await TryAddProviderAsync(new MediaActivityProvider(), "媒体");
+        await TryAddProviderAsync(new NotificationActivityProvider(), "通知");
+
+        async Task TryAddProviderAsync(IActivityProvider provider, string name)
+        {
+            try { await hub.AddProviderAsync(provider); }
+            catch (Exception ex) { MessageBox.Show($"{name}模块启动失败:\n{ex.Message}", "Dynamic Island"); }
+        }
     }
 
     private void CreateTray()
     {
-        var autostart = new MenuItem { Header = "开机自启", IsCheckable = true, IsChecked = IsAutostartEnabled() };
-        autostart.Click += (_, _) => SetAutostart(autostart.IsChecked);
+        var autostart = new MenuItem { Header = "开机自启", IsCheckable = true };
+        autostart.Click += async (_, _) => autostart.IsChecked = await SetAutostartAsync(autostart.IsChecked);
         var exit = new MenuItem { Header = "退出" };
         exit.Click += (_, _) => Shutdown();
 
@@ -48,6 +54,9 @@ public partial class App : Application
             ContextMenu = new ContextMenu { Items = { autostart, new Separator(), exit } },
         };
         _tray.ForceCreate();
+
+        // Reflect the current state once the menu item exists.
+        _ = Dispatcher.InvokeAsync(async () => autostart.IsChecked = await GetAutostartAsync());
     }
 
     private static System.Drawing.Icon LoadTrayIcon()
@@ -56,18 +65,34 @@ public partial class App : Application
         return new System.Drawing.Icon(info.Stream);
     }
 
-    private static bool IsAutostartEnabled()
+    private static async Task<bool> GetAutostartAsync()
     {
-        using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
-        return key?.GetValue(RunValueName) is not null;
+        try
+        {
+            var task = await StartupTask.GetAsync(StartupTaskId);
+            return task.State is StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy;
+        }
+        catch { return false; } // not running as a packaged app
     }
 
-    private static void SetAutostart(bool enabled)
+    private static async Task<bool> SetAutostartAsync(bool enable)
     {
-        using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true);
-        if (key is null) return;
-        if (enabled) key.SetValue(RunValueName, $"\"{Environment.ProcessPath}\"");
-        else key.DeleteValue(RunValueName, throwOnMissingValue: false);
+        try
+        {
+            var task = await StartupTask.GetAsync(StartupTaskId);
+            if (!enable)
+            {
+                task.Disable();
+                return false;
+            }
+            // Returns DisabledByUser if the user turned it off in Settings → Apps → Startup.
+            return await task.RequestEnableAsync() is StartupTaskState.Enabled;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"设置开机自启失败:\n{ex.Message}", "Dynamic Island");
+            return await GetAutostartAsync();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

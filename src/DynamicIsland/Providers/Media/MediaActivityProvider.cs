@@ -1,7 +1,5 @@
-using System.IO;
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using DynamicIsland.Core;
 using Windows.Media.Control;
 
@@ -94,25 +92,6 @@ public sealed class MediaActivityProvider : IActivityProvider
         _activity.UpdateTimeline(t.Position - t.StartTime, t.EndTime - t.StartTime);
     }
 
-    private static async Task<ImageSource?> LoadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? reference)
-    {
-        if (reference is null) return null;
-        try
-        {
-            using var winStream = await reference.OpenReadAsync();
-            using var ms = new MemoryStream();
-            await winStream.AsStreamForRead().CopyToAsync(ms);
-            if (ms.Length == 0) return null;
-            ms.Position = 0;
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.DecodePixelWidth = 160;
-            image.StreamSource = ms;
-            image.EndInit();
-            image.Freeze();
-            return image;
-        }
-        catch { return null; }
-    }
+    private static Task<ImageSource?> LoadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? reference) =>
+        StreamImage.LoadAsync(reference);
 }

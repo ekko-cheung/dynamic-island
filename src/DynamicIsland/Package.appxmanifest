@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  IgnorableNamespaces="uap rescap desktop">
+
+  <!-- Publisher must match the signing certificate subject when the package is signed. -->
+  <Identity Name="EkkoCheung.DynamicIsland" Publisher="CN=ekko-cheung" Version="0.1.0.0" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Dynamic Island</DisplayName>
+    <PublisherDisplayName>ekko-cheung</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="zh-CN" />
+  </Resources>
+
+  <Applications>
+    <Application Id="DynamicIsland" Executable="DynamicIsland.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="Dynamic Island"
+        Description="屏幕顶部的灵动岛:音乐控制与通知"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <!-- Launch at sign-in; toggled from the tray menu. -->
+        <desktop:Extension Category="windows.startupTask" Executable="DynamicIsland.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="DynamicIslandStartup" Enabled="false" DisplayName="Dynamic Island" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <!-- Lets the app read toast notifications from the notification center. -->
+    <uap:Capability Name="userNotificationListener" />
+  </Capabilities>
+
+</Package>

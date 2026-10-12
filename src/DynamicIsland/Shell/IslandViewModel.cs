@@ -2,6 +2,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Media;
+using DynamicIsland.Providers.Notifications;
 
 namespace DynamicIsland.Shell;
 
@@ -9,6 +10,7 @@ public sealed partial class IslandViewModel : ObservableObject
 {
     private static readonly TimeSpan AutoCollapse = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan HoverCollapseDelay = TimeSpan.FromMilliseconds(400);
+    private static readonly TimeSpan NotificationShowFor = TimeSpan.FromSeconds(5);
 
     private readonly DispatcherTimer _collapseTimer = new();
     private MediaActivity? _watched;
@@ -39,7 +41,21 @@ public sealed partial class IslandViewModel : ObservableObject
         Current = Hub.Current;
         _watched = Current as MediaActivity;
         if (_watched is not null) _watched.TrackChanged += OnTrackChanged;
-        if (Current is null) IsExpanded = false;
+
+        if (Current is NotificationActivity && !IsSuppressed)
+        {
+            // New notifications pop open briefly, then the hub drops them and the pill falls back.
+            IsExpanded = true;
+            RestartCollapseTimer(NotificationShowFor);
+        }
+        else if (Current is null) IsExpanded = false;
+    }
+
+    private void RestartCollapseTimer(TimeSpan delay)
+    {
+        _collapseTimer.Interval = delay;
+        _collapseTimer.Stop();
+        _collapseTimer.Start();
     }
 
     private void OnTrackChanged(object? sender, EventArgs e)
