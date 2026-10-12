@@ -1,0 +1,25 @@
+<Window x:Class="DynamicIsland.Shell.IslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:media="clr-namespace:DynamicIsland.Providers.Media"
+        xmlns:views="clr-namespace:DynamicIsland.Views"
+        Title="Dynamic Island"
+        Width="440" Height="170"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize" ShowActivated="False">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- One DataTemplate per activity type; new providers add theirs here. -->
+        <DataTemplate DataType="{x:Type media:MediaActivity}">
+            <views:MediaView IsExpanded="{Binding DataContext.IsExpanded, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <!-- Transparent window area is click-through; only the pill takes input. -->
+    <Border x:Name="Pill" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top"
+            Width="230" Height="38" CornerRadius="19" ClipToBounds="True"
+            Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}"
+            MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
+        <ContentControl Content="{Binding Current}"/>
+    </Border>
+</Window>
