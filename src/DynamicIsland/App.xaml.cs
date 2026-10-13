@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
+using DynamicIsland.Settings;
 using DynamicIsland.Shell;
 using H.NotifyIcon;
 using Windows.ApplicationModel;
@@ -13,6 +14,7 @@ public partial class App : Application
 {
     private const string StartupTaskId = "DynamicIslandStartup";
 
+    private readonly AppSettings _settings = AppSettings.Load();
     private Mutex? _singleInstance;
     private TaskbarIcon? _tray;
     private IslandWindow? _window;
@@ -31,7 +33,7 @@ public partial class App : Application
 
         // Providers are registered here; add progress providers next to these lines.
         await TryAddProviderAsync(new MediaActivityProvider(), "媒体");
-        await TryAddProviderAsync(new NotificationActivityProvider(), "通知");
+        await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
 
         async Task TryAddProviderAsync(IActivityProvider provider, string name)
         {
@@ -47,16 +49,49 @@ public partial class App : Application
         var exit = new MenuItem { Header = "退出" };
         exit.Click += (_, _) => Shutdown();
 
+        var filter = new MenuItem { Header = "仅显示选中应用的通知", IsCheckable = true, IsChecked = _settings.NotificationFilterEnabled };
+        filter.Click += (_, _) =>
+        {
+            _settings.NotificationFilterEnabled = filter.IsChecked;
+            _settings.Save();
+        };
+        var apps = new MenuItem { Header = "通知应用(勾选 = 允许)" };
+        apps.SubmenuOpened += (_, _) => RebuildAppsMenu(apps);
+        RebuildAppsMenu(apps);
+
         _tray = new TaskbarIcon
         {
             ToolTipText = "Dynamic Island",
             Icon = LoadTrayIcon(),
-            ContextMenu = new ContextMenu { Items = { autostart, new Separator(), exit } },
+            ContextMenu = new ContextMenu { Items = { filter, apps, new Separator(), autostart, new Separator(), exit } },
         };
         _tray.ForceCreate();
 
         // Reflect the current state once the menu item exists.
         _ = Dispatcher.InvokeAsync(async () => autostart.IsChecked = await GetAutostartAsync());
+    }
+
+    // Apps appear here once they have sent a notification while the island was running.
+    private void RebuildAppsMenu(MenuItem apps)
+    {
+        apps.Items.Clear();
+        if (_settings.KnownApps.Count == 0)
+        {
+            apps.Items.Add(new MenuItem { Header = "(收到通知后会出现在这里)", IsEnabled = false });
+            return;
+        }
+
+        foreach (var (id, name) in _settings.KnownApps.OrderBy(a => a.Value, StringComparer.CurrentCultureIgnoreCase))
+        {
+            var item = new MenuItem { Header = name, IsCheckable = true, IsChecked = _settings.AllowedApps.Contains(id) };
+            item.Click += (_, _) =>
+            {
+                if (item.IsChecked) _settings.AllowedApps.Add(id);
+                else _settings.AllowedApps.Remove(id);
+                _settings.Save();
+            };
+            apps.Items.Add(item);
+        }
     }
 
     private static System.Drawing.Icon LoadTrayIcon()

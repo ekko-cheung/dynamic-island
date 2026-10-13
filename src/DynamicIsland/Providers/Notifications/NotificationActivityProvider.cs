@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using DynamicIsland.Core;
+using DynamicIsland.Settings;
 using Windows.UI.Notifications;
 using Windows.UI.Notifications.Management;
 
@@ -14,7 +15,10 @@ public sealed class NotificationActivityProvider : IActivityProvider
 {
     private static readonly TimeSpan ShowFor = TimeSpan.FromSeconds(6);
 
+    private readonly AppSettings _settings;
     private readonly HashSet<uint> _seen = [];
+
+    public NotificationActivityProvider(AppSettings settings) => _settings = settings;
 
     public event EventHandler<ActivityChangedEventArgs>? ActivityChanged;
 
@@ -27,7 +31,10 @@ public sealed class NotificationActivityProvider : IActivityProvider
 
         // Notifications already sitting in the action center at startup are not replayed.
         foreach (var n in await listener.GetNotificationsAsync(NotificationKinds.Toast))
+        {
             _seen.Add(n.Id);
+            Remember(n.AppInfo);
+        }
 
         listener.NotificationChanged += (_, args) =>
             Application.Current.Dispatcher.InvokeAsync(async () =>
@@ -37,12 +44,25 @@ public sealed class NotificationActivityProvider : IActivityProvider
             });
     }
 
+    /// <summary>Records the app so it shows up in the tray's allow-list menu.</summary>
+    private void Remember(Windows.ApplicationModel.AppInfo info)
+    {
+        var id = info.AppUserModelId;
+        var name = info.DisplayInfo.DisplayName;
+        if (_settings.KnownApps.TryGetValue(id, out var existing) && existing == name) return;
+        _settings.KnownApps[id] = name;
+        _settings.Save();
+    }
+
     private async Task OnNotificationAddedAsync(UserNotificationListener listener, UserNotificationChangedEventArgs args)
     {
         if (args.ChangeKind != UserNotificationChangedKind.Added) return;
         if (!_seen.Add(args.UserNotificationId)) return;
 
         var n = listener.GetNotification(args.UserNotificationId);
+        Remember(n.AppInfo);
+        if (!_settings.IsAllowed(n.AppInfo.AppUserModelId)) return;
+
         var binding = n.Notification.Visual.GetBinding(KnownNotificationBindings.ToastGeneric);
         var texts = binding?.GetTextElements().Select(t => t.Text).ToArray() ?? [];
         var title = texts.ElementAtOrDefault(0) ?? "";

@@ -32,8 +32,10 @@ function Find-SdkTool([string]$name) {
     throw "$name not found. Install the Windows 10/11 SDK."
 }
 
-# The exe locks its own files while running.
+# The exe locks its own files while running, and a registered package's folder is protected,
+# so stop the app and unregister any previous dev package before rebuilding the layout.
 Get-Process DynamicIsland -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-AppxPackage -Name 'EkkoCheung.DynamicIsland' | Remove-AppxPackage
 
 if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
 dotnet publish $project -c Release -r win-x64 --self-contained false -o $layout
