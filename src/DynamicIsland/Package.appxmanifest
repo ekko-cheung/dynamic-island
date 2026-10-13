@@ -2,9 +2,10 @@
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
-  IgnorableNamespaces="uap rescap desktop">
+  IgnorableNamespaces="uap uap3 rescap desktop">
 
   <!-- Publisher must match the signing certificate subject when the package is signed. -->
   <Identity Name="EkkoCheung.DynamicIsland" Publisher="CN=ekko-cheung" Version="0.1.0.0" ProcessorArchitecture="x64" />
@@ -43,7 +44,7 @@
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
     <!-- Lets the app read toast notifications from the notification center. -->
-    <uap:Capability Name="userNotificationListener" />
+    <uap3:Capability Name="userNotificationListener" />
   </Capabilities>
 
 </Package>
