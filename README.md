@@ -61,6 +61,7 @@ curl -X POST http://127.0.0.1:17890/notify -H "Content-Type: application/json" \
 | `title` / `body` | 至少填一个;标题最长 200 字,正文最长 1000 字 |
 | `app` | 显示的来源名称,默认 `API` |
 | `durationMs` | 显示时长,默认 6000,范围 1000 到 30000 |
+| `sticky` | 设为 `true` 时一直显示,直到点击卡片右上角的关闭按钮;此时忽略 `durationMs` |
 
 成功返回 `200 {"ok":true}`;错误返回 `{"ok":false,"error":"..."}`,状态码为 400(参数错误)、404(路径不对)、405(不是 POST)、413(请求体超过 64 KB)、415(Content-Type 不是 `application/json`)。
 

@@ -46,7 +46,8 @@ public sealed partial class IslandViewModel : ObservableObject
         {
             // New notifications pop open briefly, then the hub drops them and the pill falls back.
             IsExpanded = true;
-            RestartCollapseTimer(NotificationShowFor);
+            if (Current is NotificationActivity { IsSticky: true }) _collapseTimer.Stop();
+            else RestartCollapseTimer(NotificationShowFor);
         }
         else if (Current is null) IsExpanded = false;
     }
@@ -77,6 +78,7 @@ public sealed partial class IslandViewModel : ObservableObject
     public void PointerLeft()
     {
         _hovering = false;
+        if (Current is NotificationActivity { IsSticky: true }) return; // keep the close button reachable
         _collapseTimer.Interval = HoverCollapseDelay;
         _collapseTimer.Stop();
         _collapseTimer.Start();

@@ -24,7 +24,7 @@ public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
 
-    private sealed record NotifyRequest(string? Title, string? Body, string? App, int? DurationMs);
+    private sealed record NotifyRequest(string? Title, string? Body, string? App, int? DurationMs, bool? Sticky);
 
     public event EventHandler<ActivityChangedEventArgs>? ActivityChanged;
 
@@ -72,7 +72,7 @@ public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
             var app = Truncate(payload?.App, 60);
             var showFor = payload?.DurationMs is { } ms ? TimeSpan.FromMilliseconds(Math.Clamp(ms, 1000, 30000)) : DefaultShowFor;
 
-            await Application.Current.Dispatcher.InvokeAsync(() => Show(app.Length > 0 ? app : "API", title, text, showFor));
+            await Application.Current.Dispatcher.InvokeAsync(() => Show(app.Length > 0 ? app : "API", title, text, showFor, payload?.Sticky == true));
             await ReplyAsync(context, 200, null);
         }
         catch
@@ -82,10 +82,12 @@ public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
     }
 
     // UI thread: the hub and DispatcherTimer are not thread-safe.
-    private void Show(string app, string title, string body, TimeSpan showFor)
+    private void Show(string app, string title, string body, TimeSpan showFor, bool sticky)
     {
         var id = $"api-{Guid.NewGuid():N}";
-        ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(id, new NotificationActivity(id, app, title, body, icon: null)));
+        Action? dismiss = sticky ? () => ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(id, null)) : null;
+        ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(id, new NotificationActivity(id, app, title, body, icon: null, dismiss)));
+        if (sticky) return; // stays until the user closes it
 
         var timer = new DispatcherTimer { Interval = showFor };
         timer.Tick += (_, _) =>
