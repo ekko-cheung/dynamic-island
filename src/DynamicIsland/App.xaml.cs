@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using DynamicIsland.Core;
+using DynamicIsland.Providers.Api;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Settings;
@@ -33,7 +34,11 @@ public partial class App : Application
 
         // Providers are registered here; add progress providers next to these lines.
         await TryAddProviderAsync(new MediaActivityProvider(), "媒体");
-        await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
+        // Reading system notifications needs package identity; without it, skip the provider quietly.
+        if (PackageIdentity.IsPackaged)
+            await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
+        if (_settings.ApiPort > 0)
+            await TryAddProviderAsync(new LocalApiProvider(_settings), "本地接口");
 
         async Task TryAddProviderAsync(IActivityProvider provider, string name)
         {
