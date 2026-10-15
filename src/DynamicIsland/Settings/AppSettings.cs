@@ -35,7 +35,7 @@ public sealed class AppSettings
         return kind switch
         {
             ActivityKind.Microphone => IslandSlot.Left,
-            ActivityKind.Camera => IslandSlot.Right,
+            ActivityKind.Camera or ActivityKind.Location => IslandSlot.Right,
             _ => IslandSlot.Main,
         };
     }

@@ -39,6 +39,10 @@
             <TextBlock Text="&#xE722;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#FF30D158"
                        Margin="11,0" VerticalAlignment="Center" ToolTip="{Binding AppsText}"/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type privacy:LocationActivity}">
+            <TextBlock Text="&#xE81D;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#FF0A84FF"
+                       Margin="11,0" VerticalAlignment="Center" ToolTip="{Binding AppsText}"/>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Border Background="Black" Height="38" MinWidth="38" CornerRadius="19" ClipToBounds="True">

@@ -8,4 +8,5 @@ public enum ActivityKind
     Progress,
     Microphone,
     Camera,
+    Location,
 }

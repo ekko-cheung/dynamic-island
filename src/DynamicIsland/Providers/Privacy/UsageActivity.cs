@@ -24,3 +24,5 @@ public abstract partial class UsageActivity(string id, ActivityKind kind) : Isla
 public sealed class MicrophoneActivity() : UsageActivity("microphone", ActivityKind.Microphone);
 
 public sealed class CameraActivity() : UsageActivity("camera", ActivityKind.Camera);
+
+public sealed class LocationActivity() : UsageActivity("location", ActivityKind.Location);

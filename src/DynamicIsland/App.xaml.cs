@@ -47,6 +47,7 @@ public partial class App : Application
         await TryAddProviderAsync(new SystemLevelProvider(), "音量/亮度");
         await TryAddProviderAsync(new CapabilityUsageProvider("microphone", new MicrophoneActivity()), "麦克风");
         await TryAddProviderAsync(new CapabilityUsageProvider("webcam", new CameraActivity()), "摄像头");
+        await TryAddProviderAsync(new CapabilityUsageProvider("location", new LocationActivity()), "定位");
         if (_settings.ApiPort > 0)
             await TryAddProviderAsync(new LocalApiProvider(_settings), "本地接口");
 

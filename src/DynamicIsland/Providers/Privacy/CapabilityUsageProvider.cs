@@ -6,10 +6,10 @@ using Microsoft.Win32;
 namespace DynamicIsland.Providers.Privacy;
 
 /// <summary>
-/// Detects apps using the microphone or camera from the same registry data Windows uses for its own tray indicator:
+/// Detects apps using the microphone, camera or location from the same registry data Windows uses for its own tray indicator:
 /// each app under the ConsentStore has LastUsedTimeStart / LastUsedTimeStop, and Stop == 0 means "in use now".
 /// </summary>
-/// <param name="capability">ConsentStore subkey: "microphone" or "webcam".</param>
+/// <param name="capability">ConsentStore subkey: "microphone", "webcam" or "location".</param>
 public sealed class CapabilityUsageProvider(string capability, UsageActivity activity) : IActivityProvider
 {
     private const string ConsentStore = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\";
@@ -55,15 +55,15 @@ public sealed class CapabilityUsageProvider(string capability, UsageActivity act
         {
             using var root = Registry.CurrentUser.OpenSubKey(ConsentStore + capability);
             if (root is null) return [];
-            Collect(root, apps);
+            Collect(root, apps, nonPackaged: false);
             using var nonPackaged = root.OpenSubKey("NonPackaged");
-            if (nonPackaged is not null) Collect(nonPackaged, apps);
+            if (nonPackaged is not null) Collect(nonPackaged, apps, nonPackaged: true);
         }
         catch { /* registry unreadable: report nothing */ }
         return [.. apps];
     }
 
-    private static void Collect(RegistryKey parent, SortedSet<string> apps)
+    private static void Collect(RegistryKey parent, SortedSet<string> apps, bool nonPackaged)
     {
         foreach (var name in parent.GetSubKeyNames())
         {
@@ -71,7 +71,12 @@ public sealed class CapabilityUsageProvider(string capability, UsageActivity act
             using var app = parent.OpenSubKey(name);
             if (app?.GetValue("LastUsedTimeStart") is long start && start > 0 &&
                 app.GetValue("LastUsedTimeStop") is long stop && stop == 0)
-                apps.Add(DisplayName(name));
+            {
+                var display = DisplayName(name);
+                // An app killed mid-use never writes its stop time; drop entries whose process is gone.
+                if (nonPackaged && System.Diagnostics.Process.GetProcessesByName(display).Length == 0) continue;
+                apps.Add(display);
+            }
         }
     }
 
