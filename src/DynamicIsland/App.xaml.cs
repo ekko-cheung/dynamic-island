@@ -22,6 +22,7 @@ public partial class App : Application
     private TaskbarIcon? _tray;
     private IslandWindow? _window;
     private ActivityHub? _hub;
+    private SettingsWindow? _settingsWindow;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -36,6 +37,7 @@ public partial class App : Application
         _window = new IslandWindow(new IslandViewModel(hub));
         _window.Show();
         CreateTray();
+        if (e.Args.Contains("--settings")) ShowSettings();
 
         // Providers are registered here; add progress providers next to these lines.
         await TryAddProviderAsync(new MediaActivityProvider(), "媒体");
@@ -56,92 +58,34 @@ public partial class App : Application
 
     private void CreateTray()
     {
-        var autostart = new MenuItem { Header = "开机自启", IsCheckable = true };
-        autostart.Click += async (_, _) => autostart.IsChecked = await SetAutostartAsync(autostart.IsChecked);
+        var settings = new MenuItem { Header = "设置" };
+        settings.Click += (_, _) => ShowSettings();
         var exit = new MenuItem { Header = "退出" };
         exit.Click += (_, _) => Shutdown();
-
-        var filter = new MenuItem { Header = "仅显示选中应用的通知", IsCheckable = true, IsChecked = _settings.NotificationFilterEnabled };
-        filter.Click += (_, _) =>
-        {
-            _settings.NotificationFilterEnabled = filter.IsChecked;
-            _settings.Save();
-        };
-        var apps = new MenuItem { Header = "通知应用(勾选 = 允许)" };
-        apps.SubmenuOpened += (_, _) => RebuildAppsMenu(apps);
-        RebuildAppsMenu(apps);
 
         _tray = new TaskbarIcon
         {
             ToolTipText = "Dynamic Island",
             Icon = LoadTrayIcon(),
-            ContextMenu = new ContextMenu { Items = { filter, apps, BuildPlacementMenu(), new Separator(), autostart, new Separator(), exit } },
+            ContextMenu = new ContextMenu { Items = { settings, new Separator(), exit } },
         };
+        _tray.TrayMouseDoubleClick += (_, _) => ShowSettings();
         _tray.ForceCreate();
-
-        // Reflect the current state once the menu item exists.
-        _ = Dispatcher.InvokeAsync(async () => autostart.IsChecked = await GetAutostartAsync());
     }
 
-    // Per activity kind: which island shows it. Radio-style: exactly one slot is checked.
-    private MenuItem BuildPlacementMenu()
+    private async void ShowSettings()
     {
-        var root = new MenuItem { Header = "显示位置" };
-        var kinds = new (ActivityKind Kind, string Name)[]
+        if (_settingsWindow is { IsLoaded: true })
         {
-            (ActivityKind.Media, "音乐"),
-            (ActivityKind.AppNotification, "通知"),
-            (ActivityKind.Progress, "音量/亮度"),
-            (ActivityKind.Microphone, "麦克风"),
-        };
-        var slots = new (IslandSlot Slot, string Name)[]
-        {
-            (IslandSlot.Main, "主灵动岛"), (IslandSlot.Left, "左侧小岛"), (IslandSlot.Right, "右侧小岛"),
-        };
-
-        foreach (var (kind, kindName) in kinds)
-        {
-            var group = new MenuItem { Header = kindName };
-            var items = new List<(MenuItem Item, IslandSlot Slot)>();
-            foreach (var (slot, slotName) in slots)
-            {
-                var item = new MenuItem { Header = slotName, IsCheckable = true, IsChecked = _settings.SlotFor(kind) == slot };
-                item.Click += (_, _) =>
-                {
-                    _settings.SetSlot(kind, slot);
-                    _settings.Save();
-                    foreach (var (other, otherSlot) in items) other.IsChecked = otherSlot == slot;
-                    _hub?.Refresh();
-                };
-                items.Add((item, slot));
-                group.Items.Add(item);
-            }
-            root.Items.Add(group);
-        }
-        return root;
-    }
-
-    // Apps appear here once they have sent a notification while the island was running.
-    private void RebuildAppsMenu(MenuItem apps)
-    {
-        apps.Items.Clear();
-        if (_settings.KnownApps.Count == 0)
-        {
-            apps.Items.Add(new MenuItem { Header = "(收到通知后会出现在这里)", IsEnabled = false });
+            _settingsWindow.RefreshApps();
+            _settingsWindow.Activate();
             return;
         }
 
-        foreach (var (id, name) in _settings.KnownApps.OrderBy(a => a.Value, StringComparer.CurrentCultureIgnoreCase))
-        {
-            var item = new MenuItem { Header = name, IsCheckable = true, IsChecked = _settings.AllowedApps.Contains(id) };
-            item.Click += (_, _) =>
-            {
-                if (item.IsChecked) _settings.AllowedApps.Add(id);
-                else _settings.AllowedApps.Remove(id);
-                _settings.Save();
-            };
-            apps.Items.Add(item);
-        }
+        var packaged = PackageIdentity.IsPackaged;
+        _settingsWindow = new SettingsWindow(_settings, _hub!, packaged, packaged && await GetAutostartAsync(), SetAutostartAsync);
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     private static System.Drawing.Icon LoadTrayIcon()
