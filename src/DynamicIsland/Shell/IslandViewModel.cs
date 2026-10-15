@@ -1,6 +1,7 @@
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicIsland.Core;
+using DynamicIsland.Providers.Claude;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
@@ -12,9 +13,11 @@ public sealed partial class IslandViewModel : ObservableObject
     private static readonly TimeSpan AutoCollapse = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan HoverCollapseDelay = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan NotificationShowFor = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ClaudeShowFor = TimeSpan.FromSeconds(4);
 
     private readonly DispatcherTimer _collapseTimer = new();
     private MediaActivity? _watched;
+    private ClaudeActivity? _watchedClaude;
     private bool _hovering;
 
     public IslandViewModel(ActivityHub hub)
@@ -62,9 +65,12 @@ public sealed partial class IslandViewModel : ObservableObject
     private void OnMainChanged()
     {
         if (_watched is not null) _watched.TrackChanged -= OnTrackChanged;
+        if (_watchedClaude is not null) _watchedClaude.StateChanged -= OnClaudeStateChanged;
         Current = Hub.Get(IslandSlot.Main);
         _watched = Current as MediaActivity;
         if (_watched is not null) _watched.TrackChanged += OnTrackChanged;
+        _watchedClaude = Current as ClaudeActivity;
+        if (_watchedClaude is not null) _watchedClaude.StateChanged += OnClaudeStateChanged;
 
         if (Current is NotificationActivity && !IsSuppressed)
         {
@@ -72,6 +78,12 @@ public sealed partial class IslandViewModel : ObservableObject
             IsExpanded = true;
             if (Current is NotificationActivity { IsSticky: true }) _collapseTimer.Stop();
             else RestartCollapseTimer(NotificationShowFor);
+        }
+        else if (Current is ClaudeActivity { State: not ClaudeState.Running } && !IsSuppressed)
+        {
+            // Needs attention or just finished: pop open briefly.
+            IsExpanded = true;
+            RestartCollapseTimer(ClaudeShowFor);
         }
         else if (Current is null or LevelActivity)
         {
@@ -86,6 +98,13 @@ public sealed partial class IslandViewModel : ObservableObject
         _collapseTimer.Interval = delay;
         _collapseTimer.Stop();
         _collapseTimer.Start();
+    }
+
+    private void OnClaudeStateChanged(object? sender, EventArgs e)
+    {
+        if (IsSuppressed || sender is not ClaudeActivity { State: not ClaudeState.Running }) return;
+        IsExpanded = true;
+        if (!_hovering) RestartCollapseTimer(ClaudeShowFor);
     }
 
     private void OnTrackChanged(object? sender, EventArgs e)

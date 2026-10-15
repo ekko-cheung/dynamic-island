@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:media="clr-namespace:DynamicIsland.Providers.Media"
              xmlns:levels="clr-namespace:DynamicIsland.Providers.SystemLevels"
+             xmlns:claude="clr-namespace:DynamicIsland.Providers.Claude"
              xmlns:privacy="clr-namespace:DynamicIsland.Providers.Privacy"
              xmlns:notifications="clr-namespace:DynamicIsland.Providers.Notifications">
     <!-- A small island: compact-only rendering of whichever activity is routed to it. -->
@@ -42,6 +43,13 @@
         <DataTemplate DataType="{x:Type privacy:LocationActivity}">
             <TextBlock Text="&#xE81D;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#FF0A84FF"
                        Margin="11,0" VerticalAlignment="Center" ToolTip="{Binding AppsText}"/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type claude:ClaudeActivity}">
+            <StackPanel Orientation="Horizontal" Margin="12,0">
+                <Ellipse Width="8" Height="8" Fill="{Binding AccentBrush}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding StateText}" Foreground="{Binding AccentBrush}" FontSize="12" Margin="7,0,0,0"
+                           VerticalAlignment="Center" ToolTip="{Binding Project}"/>
+            </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
 

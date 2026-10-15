@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
 using DynamicIsland.Core;
+using DynamicIsland.Providers.Claude;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Settings;
 
@@ -15,9 +16,11 @@ namespace DynamicIsland.Providers.Api;
 /// <c>POST http://127.0.0.1:{port}/notify</c> with a JSON body.
 /// Loopback only, and JSON-only so a web page cannot trigger it without a CORS preflight (which we never grant).
 /// </summary>
-public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
+public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvider claude) : IActivityProvider
 {
     private const int MaxBodyBytes = 64 * 1024;
+    // Claude Code hook payloads can embed whole tool inputs/outputs.
+    private const int MaxHookBodyBytes = 8 * 1024 * 1024;
     private const int MaxTitleLength = 200;
     private const int MaxBodyLength = 1000;
     private static readonly TimeSpan DefaultShowFor = TimeSpan.FromSeconds(6);
@@ -53,13 +56,27 @@ public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
         try
         {
             var request = context.Request;
-            if (request.Url?.AbsolutePath != "/notify") { await ReplyAsync(context, 404, "not found"); return; }
+            var path = request.Url?.AbsolutePath;
+            if (path is not ("/notify" or "/claude")) { await ReplyAsync(context, 404, "not found"); return; }
             if (request.HttpMethod != "POST") { await ReplyAsync(context, 405, "use POST"); return; }
             if (request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) != true)
             { await ReplyAsync(context, 415, "Content-Type must be application/json"); return; }
 
-            var body = await ReadBodyAsync(request);
+            var isHook = path == "/claude";
+            var body = await ReadBodyAsync(request, isHook ? MaxHookBodyBytes : MaxBodyBytes);
             if (body is null) { await ReplyAsync(context, 413, "body too large"); return; }
+
+            if (isHook)
+            {
+                ClaudeHookEvent? hook;
+                try { hook = JsonSerializer.Deserialize<ClaudeHookEvent>(body, Json); }
+                catch (JsonException) { await ReplyAsync(context, 400, "invalid JSON"); return; }
+                if (hook is null) { await ReplyAsync(context, 400, "empty body"); return; }
+
+                await Application.Current.Dispatcher.InvokeAsync(() => claude.Report(hook));
+                await ReplyAsync(context, 200, null);
+                return;
+            }
 
             NotifyRequest? payload;
             try { payload = JsonSerializer.Deserialize<NotifyRequest>(body, Json); }
@@ -98,7 +115,7 @@ public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
         timer.Start();
     }
 
-    private static async Task<string?> ReadBodyAsync(HttpListenerRequest request)
+    private static async Task<string?> ReadBodyAsync(HttpListenerRequest request, int maxBytes)
     {
         using var buffer = new MemoryStream();
         var chunk = new byte[4096];
@@ -106,7 +123,7 @@ public sealed class LocalApiProvider(AppSettings settings) : IActivityProvider
         while ((read = await request.InputStream.ReadAsync(chunk)) > 0)
         {
             buffer.Write(chunk, 0, read);
-            if (buffer.Length > MaxBodyBytes) return null;
+            if (buffer.Length > maxBytes) return null;
         }
         return Encoding.UTF8.GetString(buffer.ToArray());
     }

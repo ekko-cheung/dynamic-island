@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Api;
+using DynamicIsland.Providers.Claude;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Privacy;
 using DynamicIsland.Providers.Notifications;
@@ -48,8 +49,11 @@ public partial class App : Application
         await TryAddProviderAsync(new CapabilityUsageProvider("microphone", new MicrophoneActivity()), "麦克风");
         await TryAddProviderAsync(new CapabilityUsageProvider("webcam", new CameraActivity()), "摄像头");
         await TryAddProviderAsync(new CapabilityUsageProvider("location", new LocationActivity()), "定位");
+        // Claude Code status arrives as hook events over the local API.
+        var claude = new ClaudeActivityProvider();
+        await TryAddProviderAsync(claude, "Claude 状态");
         if (_settings.ApiPort > 0)
-            await TryAddProviderAsync(new LocalApiProvider(_settings), "本地接口");
+            await TryAddProviderAsync(new LocalApiProvider(_settings, claude), "本地接口");
 
         async Task TryAddProviderAsync(IActivityProvider provider, string name)
         {

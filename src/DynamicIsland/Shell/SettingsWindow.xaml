@@ -89,6 +89,28 @@
             </Setter>
         </Style>
 
+        <Style x:Key="PillButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{StaticResource Accent}" CornerRadius="6" Padding="16,6" MinWidth="92">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="TextBox">
             <Setter Property="Padding" Value="8,5"/>
             <Setter Property="Template">
@@ -162,6 +184,27 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- Claude Code -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Claude Code 集成"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock x:Name="ClaudeStatus" Text="正在检查…"/>
+                            <TextBlock Style="{StaticResource Hint}"
+                                       Text="在 ~/.claude/settings.json 里添加上报状态的 hooks。只增删灵动岛自己的条目,其他配置原样保留,改动前会备份为 settings.json.bak。"/>
+                        </StackPanel>
+                        <Button x:Name="ClaudeButton" Grid.Column="1" Style="{StaticResource PillButton}" VerticalAlignment="Top"
+                                Click="ClaudeButton_Click" IsEnabled="False"/>
+                    </Grid>
+                    <TextBlock x:Name="ClaudeMessage" Style="{StaticResource Hint}" Margin="0,8,0,0" Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
 

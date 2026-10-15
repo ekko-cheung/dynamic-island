@@ -9,4 +9,5 @@ public enum ActivityKind
     Microphone,
     Camera,
     Location,
+    Claude,
 }

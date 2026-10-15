@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using DynamicIsland.Core;
+using DynamicIsland.Providers.Claude;
 using DynamicIsland.Settings;
 
 namespace DynamicIsland.Shell;
@@ -11,7 +12,7 @@ public partial class SettingsWindow : Window
 {
     private sealed record AppRow(string Id, string Name, bool Allowed);
 
-    // Glyphs are Segoe Fluent Icons / MDL2: music, notification, volume, microphone, camera, location.
+    // Glyphs are Segoe Fluent Icons / MDL2: music, notification, volume, microphone, camera, location, command prompt.
     private static readonly (ActivityKind Kind, string Name, string Glyph)[] Kinds =
     [
         (ActivityKind.Media, "音乐", ""),
@@ -20,6 +21,7 @@ public partial class SettingsWindow : Window
         (ActivityKind.Microphone, "麦克风", ""),
         (ActivityKind.Camera, "摄像头", ""),
         (ActivityKind.Location, "定位", ""),
+        (ActivityKind.Claude, "Claude 状态", ""),
     ];
 
     private static readonly (IslandSlot Slot, string Name)[] Slots =
@@ -46,6 +48,7 @@ public partial class SettingsWindow : Window
         AutostartBox.IsEnabled = autostartAvailable;
         AutostartHint.Visibility = autostartAvailable ? Visibility.Collapsed : Visibility.Visible;
         RefreshApps();
+        RefreshClaudeHooks();
     }
 
     /// <summary>Re-reads the known-apps list, e.g. when the window is brought back to front.</summary>
@@ -101,6 +104,60 @@ public partial class SettingsWindow : Window
             row.Children.Add(label);
             row.Children.Add(track);
             PlacementPanel.Children.Add(row);
+        }
+    }
+
+    private ClaudeHooksState? _claudeState;
+
+    private void RefreshClaudeHooks(string? message = null, bool isError = false)
+    {
+        try
+        {
+            _claudeState = ClaudeHooksInstaller.GetState();
+            ClaudeStatus.Text = _claudeState switch
+            {
+                ClaudeHooksState.Installed => "已添加",
+                ClaudeHooksState.Partial => "部分已添加(点击补全)",
+                _ => "未添加",
+            };
+            ClaudeButton.Content = _claudeState == ClaudeHooksState.Installed ? "移除配置" : "添加配置";
+            // The hooks post to the local API, so it has to be on.
+            ClaudeButton.IsEnabled = _settings.ApiPort > 0 || _claudeState != ClaudeHooksState.NotInstalled;
+            if (_settings.ApiPort == 0 && _claudeState == ClaudeHooksState.NotInstalled)
+                message ??= "本地接口已关闭(端口为 0),开启后才能添加。";
+        }
+        catch (Exception ex)
+        {
+            _claudeState = null;
+            ClaudeStatus.Text = "无法读取配置";
+            ClaudeButton.IsEnabled = false;
+            message = ex.Message;
+            isError = true;
+        }
+
+        ClaudeMessage.Text = message;
+        ClaudeMessage.Foreground = isError ? Brushes.Firebrick : (Brush)FindResource("Muted");
+        ClaudeMessage.Visibility = string.IsNullOrEmpty(message) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ClaudeButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_claudeState == ClaudeHooksState.Installed)
+            {
+                ClaudeHooksInstaller.Uninstall();
+                RefreshClaudeHooks("已移除。");
+            }
+            else
+            {
+                ClaudeHooksInstaller.Install(_settings.ApiPort);
+                RefreshClaudeHooks("已添加,新开的 Claude Code 会话生效。");
+            }
+        }
+        catch (Exception ex)
+        {
+            RefreshClaudeHooks("操作失败:" + ex.Message, isError: true);
         }
     }
 
