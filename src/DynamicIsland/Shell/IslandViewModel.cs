@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
+using DynamicIsland.Providers.SystemLevels;
 
 namespace DynamicIsland.Shell;
 
@@ -49,7 +50,12 @@ public sealed partial class IslandViewModel : ObservableObject
             if (Current is NotificationActivity { IsSticky: true }) _collapseTimer.Stop();
             else RestartCollapseTimer(NotificationShowFor);
         }
-        else if (Current is null) IsExpanded = false;
+        else if (Current is null or LevelActivity)
+        {
+            // A level bar is always the compact pill.
+            IsExpanded = false;
+            _collapseTimer.Stop();
+        }
     }
 
     private void RestartCollapseTimer(TimeSpan delay)
@@ -71,6 +77,7 @@ public sealed partial class IslandViewModel : ObservableObject
     public void PointerEntered()
     {
         _hovering = true;
+        if (Current is LevelActivity) return;
         _collapseTimer.Stop();
         IsExpanded = true;
     }

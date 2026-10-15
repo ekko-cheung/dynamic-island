@@ -4,6 +4,7 @@ using DynamicIsland.Core;
 using DynamicIsland.Providers.Api;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
+using DynamicIsland.Providers.SystemLevels;
 using DynamicIsland.Settings;
 using DynamicIsland.Shell;
 using H.NotifyIcon;
@@ -37,6 +38,7 @@ public partial class App : Application
         // Reading system notifications needs package identity; without it, skip the provider quietly.
         if (PackageIdentity.IsPackaged)
             await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
+        await TryAddProviderAsync(new SystemLevelProvider(), "音量/亮度");
         if (_settings.ApiPort > 0)
             await TryAddProviderAsync(new LocalApiProvider(_settings), "本地接口");
 
