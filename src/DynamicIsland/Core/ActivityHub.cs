@@ -1,12 +1,16 @@
 namespace DynamicIsland.Core;
 
-/// <summary>Aggregates providers and picks the single activity the island should show.</summary>
-public sealed class ActivityHub
+/// <summary>Where an activity is shown: the main island or one of the small islands beside it.</summary>
+public enum IslandSlot { Main, Left, Right }
+
+/// <summary>Aggregates providers and picks the single activity each slot should show.</summary>
+public sealed class ActivityHub(Func<IslandActivity, IslandSlot> route)
 {
     private readonly Dictionary<string, IslandActivity> _activities = [];
+    private readonly Dictionary<IslandSlot, IslandActivity?> _current = [];
 
-    public IslandActivity? Current { get; private set; }
-    public event EventHandler? CurrentChanged;
+    public IslandActivity? Get(IslandSlot slot) => _current.GetValueOrDefault(slot);
+    public event EventHandler<IslandSlot>? SlotChanged;
 
     public async Task AddProviderAsync(IActivityProvider provider)
     {
@@ -19,16 +23,25 @@ public sealed class ActivityHub
     {
         if (activity is null) _activities.Remove(id);
         else _activities[id] = activity;
+        Refresh();
+    }
 
-        var best = _activities.Values
-            .OrderByDescending(a => a.Priority)
-            .ThenByDescending(a => a.Updated)
-            .FirstOrDefault();
-
-        if (!ReferenceEquals(best, Current))
+    /// <summary>Recomputes every slot, e.g. after the user changes where an activity kind is shown.</summary>
+    public void Refresh()
+    {
+        var routed = _activities.Values.ToLookup(route);
+        foreach (var slot in Enum.GetValues<IslandSlot>())
         {
-            Current = best;
-            CurrentChanged?.Invoke(this, EventArgs.Empty);
+            var best = routed[slot]
+                .OrderByDescending(a => a.Priority)
+                .ThenByDescending(a => a.Updated)
+                .FirstOrDefault();
+
+            if (!ReferenceEquals(best, Get(slot)))
+            {
+                _current[slot] = best;
+                SlotChanged?.Invoke(this, slot);
+            }
         }
     }
 

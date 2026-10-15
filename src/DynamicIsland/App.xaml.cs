@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Api;
 using DynamicIsland.Providers.Media;
+using DynamicIsland.Providers.Microphone;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
 using DynamicIsland.Settings;
@@ -20,6 +21,7 @@ public partial class App : Application
     private Mutex? _singleInstance;
     private TaskbarIcon? _tray;
     private IslandWindow? _window;
+    private ActivityHub? _hub;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -28,7 +30,9 @@ public partial class App : Application
         _singleInstance = new Mutex(true, "DynamicIsland.SingleInstance", out var isFirst);
         if (!isFirst) { Shutdown(); return; }
 
-        var hub = new ActivityHub();
+        // Sticky notifications carry a close button, which only the main island has.
+        var hub = _hub = new ActivityHub(a =>
+            a is NotificationActivity { IsSticky: true } ? IslandSlot.Main : _settings.SlotFor(a.Kind));
         _window = new IslandWindow(new IslandViewModel(hub));
         _window.Show();
         CreateTray();
@@ -39,6 +43,7 @@ public partial class App : Application
         if (PackageIdentity.IsPackaged)
             await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
         await TryAddProviderAsync(new SystemLevelProvider(), "音量/亮度");
+        await TryAddProviderAsync(new MicrophoneActivityProvider(), "麦克风");
         if (_settings.ApiPort > 0)
             await TryAddProviderAsync(new LocalApiProvider(_settings), "本地接口");
 
@@ -70,12 +75,50 @@ public partial class App : Application
         {
             ToolTipText = "Dynamic Island",
             Icon = LoadTrayIcon(),
-            ContextMenu = new ContextMenu { Items = { filter, apps, new Separator(), autostart, new Separator(), exit } },
+            ContextMenu = new ContextMenu { Items = { filter, apps, BuildPlacementMenu(), new Separator(), autostart, new Separator(), exit } },
         };
         _tray.ForceCreate();
 
         // Reflect the current state once the menu item exists.
         _ = Dispatcher.InvokeAsync(async () => autostart.IsChecked = await GetAutostartAsync());
+    }
+
+    // Per activity kind: which island shows it. Radio-style: exactly one slot is checked.
+    private MenuItem BuildPlacementMenu()
+    {
+        var root = new MenuItem { Header = "显示位置" };
+        var kinds = new (ActivityKind Kind, string Name)[]
+        {
+            (ActivityKind.Media, "音乐"),
+            (ActivityKind.AppNotification, "通知"),
+            (ActivityKind.Progress, "音量/亮度"),
+            (ActivityKind.Microphone, "麦克风"),
+        };
+        var slots = new (IslandSlot Slot, string Name)[]
+        {
+            (IslandSlot.Main, "主灵动岛"), (IslandSlot.Left, "左侧小岛"), (IslandSlot.Right, "右侧小岛"),
+        };
+
+        foreach (var (kind, kindName) in kinds)
+        {
+            var group = new MenuItem { Header = kindName };
+            var items = new List<(MenuItem Item, IslandSlot Slot)>();
+            foreach (var (slot, slotName) in slots)
+            {
+                var item = new MenuItem { Header = slotName, IsCheckable = true, IsChecked = _settings.SlotFor(kind) == slot };
+                item.Click += (_, _) =>
+                {
+                    _settings.SetSlot(kind, slot);
+                    _settings.Save();
+                    foreach (var (other, otherSlot) in items) other.IsChecked = otherSlot == slot;
+                    _hub?.Refresh();
+                };
+                items.Add((item, slot));
+                group.Items.Add(item);
+            }
+            root.Items.Add(group);
+        }
+        return root;
     }
 
     // Apps appear here once they have sent a notification while the island was running.

@@ -21,8 +21,8 @@ public sealed partial class IslandViewModel : ObservableObject
     {
         Hub = hub;
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); if (!_hovering) IsExpanded = false; };
-        hub.CurrentChanged += (_, _) => OnCurrentChanged();
-        OnCurrentChanged();
+        hub.SlotChanged += (_, slot) => OnSlotChanged(slot);
+        OnMainChanged();
     }
 
     public ActivityHub Hub { get; }
@@ -31,15 +31,38 @@ public sealed partial class IslandViewModel : ObservableObject
     [ObservableProperty] private bool _isExpanded;
     [ObservableProperty] private bool _isSuppressed; // e.g. a fullscreen app is in front
 
+    // The small islands beside the main one; compact only.
+    [ObservableProperty] private IslandActivity? _left;
+    [ObservableProperty] private IslandActivity? _right;
+
     public bool IsVisible => Current is not null && !IsSuppressed;
+    public bool IsLeftVisible => Left is not null && !IsSuppressed;
+    public bool IsRightVisible => Right is not null && !IsSuppressed;
 
     partial void OnCurrentChanged(IslandActivity? value) => OnPropertyChanged(nameof(IsVisible));
-    partial void OnIsSuppressedChanged(bool value) => OnPropertyChanged(nameof(IsVisible));
+    partial void OnLeftChanged(IslandActivity? value) => OnPropertyChanged(nameof(IsLeftVisible));
+    partial void OnRightChanged(IslandActivity? value) => OnPropertyChanged(nameof(IsRightVisible));
+    partial void OnIsSuppressedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsVisible));
+        OnPropertyChanged(nameof(IsLeftVisible));
+        OnPropertyChanged(nameof(IsRightVisible));
+    }
 
-    private void OnCurrentChanged()
+    private void OnSlotChanged(IslandSlot slot)
+    {
+        switch (slot)
+        {
+            case IslandSlot.Main: OnMainChanged(); break;
+            case IslandSlot.Left: Left = Hub.Get(IslandSlot.Left); break;
+            case IslandSlot.Right: Right = Hub.Get(IslandSlot.Right); break;
+        }
+    }
+
+    private void OnMainChanged()
     {
         if (_watched is not null) _watched.TrackChanged -= OnTrackChanged;
-        Current = Hub.Current;
+        Current = Hub.Get(IslandSlot.Main);
         _watched = Current as MediaActivity;
         if (_watched is not null) _watched.TrackChanged += OnTrackChanged;
 

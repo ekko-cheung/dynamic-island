@@ -6,7 +6,7 @@
         xmlns:levels="clr-namespace:DynamicIsland.Providers.SystemLevels"
         xmlns:notifications="clr-namespace:DynamicIsland.Providers.Notifications"
         Title="Dynamic Island"
-        Width="440" Height="170"
+        Width="620" Height="170"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize" ShowActivated="False">
     <Window.Resources>
@@ -23,11 +23,26 @@
         </DataTemplate>
     </Window.Resources>
 
-    <!-- Transparent window area is click-through; only the pill takes input. -->
-    <Border x:Name="Pill" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top"
-            Width="230" Height="38" CornerRadius="19" ClipToBounds="True"
-            Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}"
-            MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
-        <ContentControl Content="{Binding Current}"/>
-    </Border>
+    <!-- Transparent window area is click-through; only the pills take input.
+         The star columns keep the main pill centered while the small islands hug its sides. -->
+    <Grid VerticalAlignment="Top">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <views:SatelliteView DataContext="{Binding Left}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,8,0"
+                             Visibility="{Binding DataContext.IsLeftVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+
+        <Border x:Name="Pill" Grid.Column="1" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top"
+                Width="230" Height="38" CornerRadius="19" ClipToBounds="True"
+                Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}"
+                MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
+            <ContentControl Content="{Binding Current}"/>
+        </Border>
+
+        <views:SatelliteView Grid.Column="2" DataContext="{Binding Right}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,0,0,0"
+                             Visibility="{Binding DataContext.IsRightVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
+    </Grid>
 </Window>

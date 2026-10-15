@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using DynamicIsland.Core;
 
 namespace DynamicIsland.Settings;
 
@@ -22,6 +23,19 @@ public sealed class AppSettings
 
     /// <summary>Apps we have seen a notification from: AppUserModelId → display name. Feeds the tray menu.</summary>
     public Dictionary<string, string> KnownApps { get; set; } = [];
+
+    /// <summary>Where each <see cref="ActivityKind"/> is shown: ActivityKind name → <see cref="IslandSlot"/> name.</summary>
+    public Dictionary<string, string> Placements { get; set; } = [];
+
+    public IslandSlot SlotFor(ActivityKind kind)
+    {
+        if (kind == ActivityKind.SystemNotification) kind = ActivityKind.AppNotification; // one setting for both
+        if (Placements.TryGetValue(kind.ToString(), out var name) && Enum.TryParse<IslandSlot>(name, out var slot))
+            return slot;
+        return kind == ActivityKind.Microphone ? IslandSlot.Left : IslandSlot.Main;
+    }
+
+    public void SetSlot(ActivityKind kind, IslandSlot slot) => Placements[kind.ToString()] = slot.ToString();
 
     public bool IsAllowed(string appId) => !NotificationFilterEnabled || AllowedApps.Contains(appId);
 
