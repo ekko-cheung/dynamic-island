@@ -7,4 +7,5 @@ public enum ActivityKind
     AppNotification,
     Progress,
     Microphone,
+    Camera,
 }

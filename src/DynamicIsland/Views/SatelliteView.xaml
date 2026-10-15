@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:media="clr-namespace:DynamicIsland.Providers.Media"
              xmlns:levels="clr-namespace:DynamicIsland.Providers.SystemLevels"
-             xmlns:mic="clr-namespace:DynamicIsland.Providers.Microphone"
+             xmlns:privacy="clr-namespace:DynamicIsland.Providers.Privacy"
              xmlns:notifications="clr-namespace:DynamicIsland.Providers.Notifications">
     <!-- A small island: compact-only rendering of whichever activity is routed to it. -->
     <UserControl.Resources>
@@ -31,8 +31,12 @@
                            VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate DataType="{x:Type mic:MicrophoneActivity}">
+        <DataTemplate DataType="{x:Type privacy:MicrophoneActivity}">
             <TextBlock Text="&#xE720;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#FFFF9F0A"
+                       Margin="11,0" VerticalAlignment="Center" ToolTip="{Binding AppsText}"/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type privacy:CameraActivity}">
+            <TextBlock Text="&#xE722;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#FF30D158"
                        Margin="11,0" VerticalAlignment="Center" ToolTip="{Binding AppsText}"/>
         </DataTemplate>
     </UserControl.Resources>

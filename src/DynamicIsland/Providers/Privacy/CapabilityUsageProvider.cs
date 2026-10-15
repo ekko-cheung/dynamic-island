@@ -3,18 +3,18 @@ using System.Windows.Threading;
 using DynamicIsland.Core;
 using Microsoft.Win32;
 
-namespace DynamicIsland.Providers.Microphone;
+namespace DynamicIsland.Providers.Privacy;
 
 /// <summary>
-/// Detects apps using the microphone from the same registry data Windows uses for its own tray indicator:
+/// Detects apps using the microphone or camera from the same registry data Windows uses for its own tray indicator:
 /// each app under the ConsentStore has LastUsedTimeStart / LastUsedTimeStop, and Stop == 0 means "in use now".
 /// </summary>
-public sealed class MicrophoneActivityProvider : IActivityProvider
+/// <param name="capability">ConsentStore subkey: "microphone" or "webcam".</param>
+public sealed class CapabilityUsageProvider(string capability, UsageActivity activity) : IActivityProvider
 {
-    private const string ConsentKey = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone";
+    private const string ConsentStore = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\";
 
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly MicrophoneActivity _activity = new();
     private bool _shown;
     private string _lastApps = "";
 
@@ -36,24 +36,24 @@ public sealed class MicrophoneActivityProvider : IActivityProvider
             if (!_shown) return;
             _shown = false;
             _lastApps = "";
-            ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(_activity.Id, null));
+            ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(activity.Id, null));
             return;
         }
 
         var text = string.Join("\n", apps);
         if (_shown && text == _lastApps) return;
         _lastApps = text;
-        _activity.Update(apps);
+        activity.Update(apps);
         _shown = true;
-        ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(_activity.Id, _activity));
+        ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(activity.Id, activity));
     }
 
-    private static List<string> ReadActiveApps()
+    private List<string> ReadActiveApps()
     {
         var apps = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
         try
         {
-            using var root = Registry.CurrentUser.OpenSubKey(ConsentKey);
+            using var root = Registry.CurrentUser.OpenSubKey(ConsentStore + capability);
             if (root is null) return [];
             Collect(root, apps);
             using var nonPackaged = root.OpenSubKey("NonPackaged");

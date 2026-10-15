@@ -11,13 +11,14 @@ public partial class SettingsWindow : Window
 {
     private sealed record AppRow(string Id, string Name, bool Allowed);
 
-    // Glyphs are Segoe Fluent Icons / MDL2: music, notification, volume, microphone.
+    // Glyphs are Segoe Fluent Icons / MDL2: music, notification, volume, microphone, camera.
     private static readonly (ActivityKind Kind, string Name, string Glyph)[] Kinds =
     [
         (ActivityKind.Media, "音乐", ""),
         (ActivityKind.AppNotification, "通知", ""),
         (ActivityKind.Progress, "音量 / 亮度", ""),
         (ActivityKind.Microphone, "麦克风", ""),
+        (ActivityKind.Camera, "摄像头", ""),
     ];
 
     private static readonly (IslandSlot Slot, string Name)[] Slots =

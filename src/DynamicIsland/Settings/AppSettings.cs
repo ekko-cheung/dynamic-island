@@ -32,7 +32,12 @@ public sealed class AppSettings
         if (kind == ActivityKind.SystemNotification) kind = ActivityKind.AppNotification; // one setting for both
         if (Placements.TryGetValue(kind.ToString(), out var name) && Enum.TryParse<IslandSlot>(name, out var slot))
             return slot;
-        return kind == ActivityKind.Microphone ? IslandSlot.Left : IslandSlot.Main;
+        return kind switch
+        {
+            ActivityKind.Microphone => IslandSlot.Left,
+            ActivityKind.Camera => IslandSlot.Right,
+            _ => IslandSlot.Main,
+        };
     }
 
     public void SetSlot(ActivityKind kind, IslandSlot slot) => Placements[kind.ToString()] = slot.ToString();

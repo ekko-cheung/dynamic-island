@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Api;
 using DynamicIsland.Providers.Media;
-using DynamicIsland.Providers.Microphone;
+using DynamicIsland.Providers.Privacy;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
 using DynamicIsland.Settings;
@@ -45,7 +45,8 @@ public partial class App : Application
         if (PackageIdentity.IsPackaged)
             await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
         await TryAddProviderAsync(new SystemLevelProvider(), "音量/亮度");
-        await TryAddProviderAsync(new MicrophoneActivityProvider(), "麦克风");
+        await TryAddProviderAsync(new CapabilityUsageProvider("microphone", new MicrophoneActivity()), "麦克风");
+        await TryAddProviderAsync(new CapabilityUsageProvider("webcam", new CameraActivity()), "摄像头");
         if (_settings.ApiPort > 0)
             await TryAddProviderAsync(new LocalApiProvider(_settings), "本地接口");
 
