@@ -7,6 +7,7 @@ using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Privacy;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
+using DynamicIsland.Providers.Timers;
 using DynamicIsland.Settings;
 using DynamicIsland.Shell;
 using H.NotifyIcon;
@@ -24,6 +25,9 @@ public partial class App : Application
     private IslandWindow? _window;
     private ActivityHub? _hub;
     private SettingsWindow? _settingsWindow;
+    private TimersWindow? _timersWindow;
+    private TimerReminderProvider? _timers;
+    private GlobalHotKey? _hotKey;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -49,11 +53,16 @@ public partial class App : Application
         await TryAddProviderAsync(new CapabilityUsageProvider("microphone", new MicrophoneActivity()), "麦克风");
         await TryAddProviderAsync(new CapabilityUsageProvider("webcam", new CameraActivity()), "摄像头");
         await TryAddProviderAsync(new CapabilityUsageProvider("location", new LocationActivity()), "定位");
+        var timers = _timers = new TimerReminderProvider(_settings);
+        await TryAddProviderAsync(timers, "计时与提醒");
+        // Ctrl+Alt+T: the island is hidden when idle, so this is the way in. Silently skipped if another app owns it.
+        _hotKey = GlobalHotKey.TryRegister(GlobalHotKey.Ctrl | GlobalHotKey.Alt, 'T', ShowTimers);
+
         // Claude Code status arrives as hook events over the local API.
         var claude = new ClaudeActivityProvider();
         await TryAddProviderAsync(claude, "Claude 状态");
         if (_settings.ApiPort > 0)
-            await TryAddProviderAsync(new LocalApiProvider(_settings, claude), "本地接口");
+            await TryAddProviderAsync(new LocalApiProvider(_settings, claude, timers), "本地接口");
 
         async Task TryAddProviderAsync(IActivityProvider provider, string name)
         {
@@ -64,6 +73,8 @@ public partial class App : Application
 
     private void CreateTray()
     {
+        var timers = new MenuItem { Header = "计时与提醒", InputGestureText = "Ctrl+Alt+T" };
+        timers.Click += (_, _) => ShowTimers();
         var settings = new MenuItem { Header = "设置" };
         settings.Click += (_, _) => ShowSettings();
         var exit = new MenuItem { Header = "退出" };
@@ -73,10 +84,24 @@ public partial class App : Application
         {
             ToolTipText = "Dynamic Island",
             Icon = LoadTrayIcon(),
-            ContextMenu = new ContextMenu { Items = { settings, new Separator(), exit } },
+            ContextMenu = new ContextMenu { Items = { timers, settings, new Separator(), exit } },
         };
         _tray.TrayMouseDoubleClick += (_, _) => ShowSettings();
         _tray.ForceCreate();
+    }
+
+    private void ShowTimers()
+    {
+        if (_timers is null) return;
+        if (_timersWindow is { IsLoaded: true })
+        {
+            _timersWindow.Activate();
+            return;
+        }
+
+        _timersWindow = new TimersWindow(_timers);
+        _timersWindow.Show();
+        _timersWindow.Activate();
     }
 
     private async void ShowSettings()
@@ -132,6 +157,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _hotKey?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();
         base.OnExit(e);

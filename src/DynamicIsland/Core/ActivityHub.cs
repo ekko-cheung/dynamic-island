@@ -30,20 +30,37 @@ public sealed class ActivityHub(Func<IslandActivity, IslandSlot> route)
     public void Refresh()
     {
         var routed = _activities.Values.ToLookup(route);
-        foreach (var slot in Enum.GetValues<IslandSlot>())
-        {
-            var best = routed[slot]
-                .OrderByDescending(a => a.Priority)
-                .ThenByDescending(a => a.Updated)
-                .FirstOrDefault();
+        var winners = Enum.GetValues<IslandSlot>().ToDictionary(s => s, s => Best(routed[s]));
 
-            if (!ReferenceEquals(best, Get(slot)))
+        // An outranked activity that allows it moves to a small island that is free or holds something less important.
+        var losers = _activities.Values
+            .Where(a => a.CanOverflow && !winners.ContainsValue(a))
+            .OrderByDescending(a => a.Priority).ThenByDescending(a => a.Updated);
+        foreach (var loser in losers)
+        {
+            var own = route(loser);
+            foreach (var slot in OverflowSlots.Where(s => s != own))
             {
-                _current[slot] = best;
-                SlotChanged?.Invoke(this, slot);
+                if (winners[slot] is { } holder && holder.Priority >= loser.Priority) continue;
+                winners[slot] = loser;
+                break;
             }
         }
+
+        foreach (var (slot, best) in winners)
+        {
+            if (ReferenceEquals(best, Get(slot))) continue;
+            _current[slot] = best;
+            SlotChanged?.Invoke(this, slot);
+        }
     }
+
+    private static readonly IslandSlot[] OverflowSlots = [IslandSlot.Left, IslandSlot.Right];
+
+    private static IslandActivity? Best(IEnumerable<IslandActivity> candidates) => candidates
+        .OrderByDescending(a => a.Priority)
+        .ThenByDescending(a => a.Updated)
+        .FirstOrDefault();
 
     private void OnActivityChanged(object? sender, ActivityChangedEventArgs e) => Apply(e.Id, e.Activity);
 }

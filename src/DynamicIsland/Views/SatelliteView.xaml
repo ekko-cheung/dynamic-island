@@ -4,6 +4,7 @@
              xmlns:media="clr-namespace:DynamicIsland.Providers.Media"
              xmlns:levels="clr-namespace:DynamicIsland.Providers.SystemLevels"
              xmlns:claude="clr-namespace:DynamicIsland.Providers.Claude"
+             xmlns:timers="clr-namespace:DynamicIsland.Providers.Timers"
              xmlns:privacy="clr-namespace:DynamicIsland.Providers.Privacy"
              xmlns:notifications="clr-namespace:DynamicIsland.Providers.Notifications">
     <!-- A small island: compact-only rendering of whichever activity is routed to it. -->
@@ -51,9 +52,23 @@
                            VerticalAlignment="Center" ToolTip="{Binding Project}"/>
             </StackPanel>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type timers:TimerActivity}">
+            <StackPanel Orientation="Horizontal" Margin="12,0">
+                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#FFFF9F0A" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding RemainingText}" Foreground="White" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"
+                           ToolTip="{Binding Label}"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type timers:ReminderActivity}">
+            <StackPanel Orientation="Horizontal" Margin="12,0" ToolTip="点击关闭">
+                <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#FFFF9F0A" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Text}" Foreground="White" FontSize="12" Margin="6,0,0,0" MaxWidth="110"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
     </UserControl.Resources>
 
-    <Border Background="Black" Height="38" MinWidth="38" CornerRadius="19" ClipToBounds="True">
+    <Border Background="Black" Height="38" MinWidth="38" CornerRadius="19" ClipToBounds="True" MouseLeftButtonUp="Satellite_Click">
         <ContentControl Content="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Border>
 </UserControl>

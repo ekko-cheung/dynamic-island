@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -7,6 +8,7 @@ using System.Windows.Threading;
 using DynamicIsland.Core;
 using DynamicIsland.Providers.Claude;
 using DynamicIsland.Providers.Notifications;
+using DynamicIsland.Providers.Timers;
 using DynamicIsland.Settings;
 
 namespace DynamicIsland.Providers.Api;
@@ -16,7 +18,7 @@ namespace DynamicIsland.Providers.Api;
 /// <c>POST http://127.0.0.1:{port}/notify</c> with a JSON body.
 /// Loopback only, and JSON-only so a web page cannot trigger it without a CORS preflight (which we never grant).
 /// </summary>
-public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvider claude) : IActivityProvider
+public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvider claude, TimerReminderProvider timers) : IActivityProvider
 {
     private const int MaxBodyBytes = 64 * 1024;
     // Claude Code hook payloads can embed whole tool inputs/outputs.
@@ -28,6 +30,8 @@ public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvide
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
 
     private sealed record NotifyRequest(string? Title, string? Body, string? App, int? DurationMs, bool? Sticky);
+    private sealed record TimerRequest(double? Minutes, double? Seconds, string? Label);
+    private sealed record ReminderRequest(string? Text, string? At, double? InMinutes, bool? Daily);
 
     public event EventHandler<ActivityChangedEventArgs>? ActivityChanged;
 
@@ -57,7 +61,7 @@ public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvide
         {
             var request = context.Request;
             var path = request.Url?.AbsolutePath;
-            if (path is not ("/notify" or "/claude")) { await ReplyAsync(context, 404, "not found"); return; }
+            if (path is not ("/notify" or "/claude" or "/timer" or "/reminder")) { await ReplyAsync(context, 404, "not found"); return; }
             if (request.HttpMethod != "POST") { await ReplyAsync(context, 405, "use POST"); return; }
             if (request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) != true)
             { await ReplyAsync(context, 415, "Content-Type must be application/json"); return; }
@@ -74,6 +78,30 @@ public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvide
                 if (hook is null) { await ReplyAsync(context, 400, "empty body"); return; }
 
                 await Application.Current.Dispatcher.InvokeAsync(() => claude.Report(hook));
+                await ReplyAsync(context, 200, null);
+                return;
+            }
+
+            if (path == "/timer")
+            {
+                if (!TryParse<TimerRequest>(body, out var timer)) { await ReplyAsync(context, 400, "invalid JSON"); return; }
+                var seconds = timer.Seconds ?? timer.Minutes * 60;
+                if (seconds is not > 0 or > 24 * 3600) { await ReplyAsync(context, 400, "minutes or seconds must be > 0 and at most 24 hours"); return; }
+
+                var label = Truncate(timer.Label, 60);
+                await Application.Current.Dispatcher.InvokeAsync(() => timers.StartCountdown(TimeSpan.FromSeconds(seconds.Value), label));
+                await ReplyAsync(context, 200, null);
+                return;
+            }
+
+            if (path == "/reminder")
+            {
+                if (!TryParse<ReminderRequest>(body, out var reminder)) { await ReplyAsync(context, 400, "invalid JSON"); return; }
+                var reminderText = Truncate(reminder.Text, MaxTitleLength);
+                if (reminderText.Length == 0) { await ReplyAsync(context, 400, "text is required"); return; }
+                if (!TryResolveDue(reminder, out var due, out var problem)) { await ReplyAsync(context, 400, problem); return; }
+
+                await Application.Current.Dispatcher.InvokeAsync(() => timers.AddReminder(reminderText, due, reminder.Daily == true));
                 await ReplyAsync(context, 200, null);
                 return;
             }
@@ -113,6 +141,46 @@ public sealed class LocalApiProvider(AppSettings settings, ClaudeActivityProvide
             ActivityChanged?.Invoke(this, new ActivityChangedEventArgs(id, null));
         };
         timer.Start();
+    }
+
+    private static bool TryParse<T>(string body, out T value) where T : class
+    {
+        try { value = JsonSerializer.Deserialize<T>(body, Json)!; }
+        catch (JsonException) { value = null!; }
+        return value is not null;
+    }
+
+    /// <summary>"at" is a time of day ("18:30", next occurrence) or a full date-time; or "inMinutes" from now.</summary>
+    private static bool TryResolveDue(ReminderRequest request, out DateTime due, out string problem)
+    {
+        var now = DateTime.Now;
+        due = default;
+        problem = "";
+
+        if (request.InMinutes is { } minutes)
+        {
+            if (minutes is > 0 and <= 366 * 24 * 60) { due = now.AddMinutes(minutes); return true; }
+            problem = "inMinutes must be > 0 and at most one year";
+            return false;
+        }
+
+        var at = request.At?.Trim() ?? "";
+        if (TimeSpan.TryParseExact(at, @"h\:mm", CultureInfo.InvariantCulture, out var timeOfDay) && timeOfDay < TimeSpan.FromDays(1))
+        {
+            due = now.Date + timeOfDay;
+            if (due <= now) due = due.AddDays(1);
+            return true;
+        }
+        if (DateTimeOffset.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var moment))
+        {
+            due = moment.LocalDateTime;
+            if (due > now) return true;
+            problem = "at is in the past";
+            return false;
+        }
+
+        problem = "give either at (\"18:30\" or an ISO date-time) or inMinutes";
+        return false;
     }
 
     private static async Task<string?> ReadBodyAsync(HttpListenerRequest request, int maxBytes)

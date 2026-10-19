@@ -1,0 +1,129 @@
+<Window x:Class="DynamicIsland.Shell.TimersWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="计时与提醒" Width="480" Height="700" MinWidth="420" MinHeight="460"
+        WindowStartupLocation="CenterScreen" Background="#F3F3F3" FontSize="13"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI" TextOptions.TextFormattingMode="Ideal">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,20,24,24">
+            <TextBlock Text="计时与提醒" FontSize="26" FontWeight="SemiBold"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,18" Text="随时按 Ctrl+Alt+T 打开本窗口。灵动岛空闲时是隐藏的,到点才会出现。"/>
+
+            <!-- 倒计时 -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="倒计时"/>
+                    <TextBlock Text="名称(可选)" Style="{StaticResource Hint}"/>
+                    <TextBox x:Name="CountdownLabel" Margin="0,4,0,12" MaxLength="60"/>
+
+                    <TextBlock Text="快速开始" Style="{StaticResource Hint}"/>
+                    <WrapPanel x:Name="Presets" Margin="0,6,0,0"/>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="CustomMinutes" Width="70" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="分钟" VerticalAlignment="Center" Margin="8,0,12,0"/>
+                        <Button Grid.Column="2" Style="{StaticResource PillButton}" Content="开始" HorizontalAlignment="Left"
+                                Click="StartCustom_Click"/>
+                    </Grid>
+                    <TextBlock x:Name="CountdownError" Foreground="Firebrick" FontSize="12" Margin="0,6,0,0" Visibility="Collapsed"/>
+
+                    <Border Height="1" Background="{StaticResource Stroke}" Margin="0,16"/>
+                    <TextBlock Text="进行中" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="CountdownsEmpty" Style="{StaticResource Hint}" Text="没有进行中的倒计时。"/>
+                    <ItemsControl x:Name="CountdownList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding RemainingText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="取消" Command="{Binding CancelCommand}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- 定时提醒 -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="定时提醒"/>
+                    <TextBlock Text="提醒内容" Style="{StaticResource Hint}"/>
+                    <TextBox x:Name="ReminderText" Margin="0,4,0,12" MaxLength="200"/>
+
+                    <Border Background="#EEEEEE" CornerRadius="8" Padding="2" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="AtTimeMode" Style="{StaticResource Segment}" Content="指定时间" GroupName="Mode" IsChecked="True"
+                                         Checked="Mode_Checked"/>
+                            <RadioButton x:Name="InMinutesMode" Style="{StaticResource Segment}" Content="几分钟后" GroupName="Mode"
+                                         Checked="Mode_Checked"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ReminderWhen" Width="90" HorizontalContentAlignment="Center" VerticalAlignment="Center" Text="09:00"/>
+                        <TextBlock x:Name="ReminderWhenHint" Grid.Column="1" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Text="24 小时制,如 18:30;已过的时间算明天"/>
+                    </Grid>
+
+                    <Grid x:Name="DailyRow" Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="每天重复" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="DailyBox" Grid.Column="1" Style="{StaticResource Switch}"/>
+                    </Grid>
+
+                    <Button Style="{StaticResource PillButton}" Content="添加提醒" HorizontalAlignment="Left" Margin="0,16,0,0"
+                            Click="AddReminder_Click"/>
+                    <TextBlock x:Name="ReminderError" Foreground="Firebrick" FontSize="12" Margin="0,6,0,0" Visibility="Collapsed"/>
+
+                    <Border Height="1" Background="{StaticResource Stroke}" Margin="0,16"/>
+                    <TextBlock Text="已设置的提醒" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="RemindersEmpty" Style="{StaticResource Hint}" Text="还没有提醒。"/>
+                    <ItemsControl x:Name="ReminderList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding DueText}" Style="{StaticResource Hint}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="删除" VerticalAlignment="Center"
+                                            Click="DeleteReminder_Click"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

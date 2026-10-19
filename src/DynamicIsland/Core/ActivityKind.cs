@@ -10,4 +10,6 @@ public enum ActivityKind
     Camera,
     Location,
     Claude,
+    Timer,
+    Reminder,
 }

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
 using DynamicIsland.Core;
@@ -23,6 +24,9 @@ public sealed class AppSettings
 
     /// <summary>Apps we have seen a notification from: AppUserModelId → display name. Feeds the tray menu.</summary>
     public Dictionary<string, string> KnownApps { get; set; } = [];
+
+    /// <summary>Scheduled reminders that have not fired yet.</summary>
+    public ObservableCollection<ReminderItem> Reminders { get; set; } = [];
 
     /// <summary>Where each <see cref="ActivityKind"/> is shown: ActivityKind name → <see cref="IslandSlot"/> name.</summary>
     public Dictionary<string, string> Placements { get; set; } = [];

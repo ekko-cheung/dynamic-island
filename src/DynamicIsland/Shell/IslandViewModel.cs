@@ -5,6 +5,7 @@ using DynamicIsland.Providers.Claude;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
+using DynamicIsland.Providers.Timers;
 
 namespace DynamicIsland.Shell;
 
@@ -62,8 +63,12 @@ public sealed partial class IslandViewModel : ObservableObject
         }
     }
 
+    // Notifications with a close button and due reminders wait for the user, so the card stays open for them.
+    private static bool KeepsExpanded(IslandActivity? a) => a is NotificationActivity { IsSticky: true } or ReminderActivity;
+
     private void OnMainChanged()
     {
+        var wasKeepingOpen = KeepsExpanded(Current);
         if (_watched is not null) _watched.TrackChanged -= OnTrackChanged;
         if (_watchedClaude is not null) _watchedClaude.StateChanged -= OnClaudeStateChanged;
         Current = Hub.Get(IslandSlot.Main);
@@ -72,7 +77,15 @@ public sealed partial class IslandViewModel : ObservableObject
         _watchedClaude = Current as ClaudeActivity;
         if (_watchedClaude is not null) _watchedClaude.StateChanged += OnClaudeStateChanged;
 
-        if (Current is NotificationActivity && !IsSuppressed)
+        // Whatever was holding the card open is gone; start from compact unless a branch below opens it again.
+        if (wasKeepingOpen && !KeepsExpanded(Current)) IsExpanded = false;
+
+        if (Current is ReminderActivity && !IsSuppressed)
+        {
+            IsExpanded = true;
+            _collapseTimer.Stop();
+        }
+        else if (Current is NotificationActivity && !IsSuppressed)
         {
             // New notifications pop open briefly, then the hub drops them and the pill falls back.
             IsExpanded = true;
@@ -127,7 +140,7 @@ public sealed partial class IslandViewModel : ObservableObject
     public void PointerLeft()
     {
         _hovering = false;
-        if (Current is NotificationActivity { IsSticky: true }) return; // keep the close button reachable
+        if (KeepsExpanded(Current)) return; // keep the buttons reachable
         _collapseTimer.Interval = HoverCollapseDelay;
         _collapseTimer.Stop();
         _collapseTimer.Start();

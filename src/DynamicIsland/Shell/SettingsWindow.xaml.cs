@@ -22,6 +22,8 @@ public partial class SettingsWindow : Window
         (ActivityKind.Camera, "摄像头", ""),
         (ActivityKind.Location, "定位", ""),
         (ActivityKind.Claude, "Claude 状态", ""),
+        (ActivityKind.Timer, "倒计时", ""),
+        (ActivityKind.Reminder, "定时提醒", ""),
     ];
 
     private static readonly (IslandSlot Slot, string Name)[] Slots =
