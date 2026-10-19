@@ -14,7 +14,7 @@ public partial class IslandWindow : Window
     private static readonly Duration AnimDuration = new(TimeSpan.FromMilliseconds(380));
 
     private readonly IslandViewModel _vm;
-    private readonly DispatcherTimer _fullscreenTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private readonly DispatcherTimer _fullscreenTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
     public IslandWindow(IslandViewModel vm)
     {
@@ -26,7 +26,7 @@ public partial class IslandWindow : Window
         vm.PropertyChanged += OnVmPropertyChanged;
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.Invoke(PositionAtTop);
 
-        _fullscreenTimer.Tick += (_, _) => _vm.IsSuppressed = NativeMethods.IsFullscreenAppActive();
+        _fullscreenTimer.Tick += (_, _) => OnWatchTick();
         _fullscreenTimer.Start();
 
         PositionAtTop();
@@ -40,6 +40,15 @@ public partial class IslandWindow : Window
         var style = NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE);
         NativeMethods.SetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE,
             style | NativeMethods.WS_EX_NOACTIVATE | NativeMethods.WS_EX_TOOLWINDOW);
+    }
+
+    private void OnWatchTick()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == nint.Zero) return;
+        _vm.IsSuppressed = NativeMethods.IsFullscreenAppActive(hwnd);
+        // Other windows (a browser opened later, another topmost app) can end up above the island.
+        if (!_vm.IsSuppressed) NativeMethods.BringToTopmost(hwnd);
     }
 
     private void PositionAtTop()

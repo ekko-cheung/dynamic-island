@@ -1,97 +1,106 @@
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using DynamicIsland.Core;
 using Windows.Media.Control;
 
 namespace DynamicIsland.Providers.Media;
 
-/// <summary>Bridges Windows SMTC (system media transport controls) to a single <see cref="MediaActivity"/>.</summary>
+/// <summary>
+/// Bridges Windows SMTC (system media transport controls) to a single <see cref="MediaActivity"/>.
+/// Session state is polled on the UI thread instead of subscribing to per-session events: players such as Apple Music
+/// replace their session on every track change, and adding/removing handlers on a session that is being torn down
+/// crashed the process inside Windows.Media.MediaControl.dll.
+/// </summary>
 public sealed class MediaActivityProvider : IActivityProvider
 {
+    private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
     private MediaActivity? _activity;
-    private string _lastThumbKey = "";
-    private ImageSource? _lastThumb;
+    private bool _busy;
+    private bool _announced;
+    private string _sessionId = "";
+    private string _trackKey = "";
+    private ImageSource? _thumb;
+    private bool? _playing;
 
     public event EventHandler<ActivityChangedEventArgs>? ActivityChanged;
 
     public async Task StartAsync()
     {
         _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-        _manager.CurrentSessionChanged += (_, _) => UI(AttachSessionAsync);
-        await AttachSessionAsync();
+        _poll.Tick += async (_, _) => await PollAsync();
+        await PollAsync();
+        _poll.Start();
     }
 
-    // WinRT events arrive on thread-pool threads; hop to the UI thread before touching bound state.
-    private static void UI(Func<Task> work) =>
-        Application.Current.Dispatcher.InvokeAsync(async () =>
-        {
-            try { await work(); } catch { /* session may vanish mid-read */ }
-        });
-
-    private async Task AttachSessionAsync()
+    private async Task PollAsync()
     {
-        if (_session is not null)
+        if (_busy || _manager is null) return;
+        _busy = true;
+        try
         {
-            _session.MediaPropertiesChanged -= OnMediaProps;
-            _session.PlaybackInfoChanged -= OnPlayback;
-            _session.TimelinePropertiesChanged -= OnTimeline;
+            var session = _manager.GetCurrentSession();
+            if (session is null)
+            {
+                Detach();
+                return;
+            }
+
+            var id = session.SourceAppUserModelId;
+            var isNewSession = !_announced || id != _sessionId;
+            _session = session;
+            _sessionId = id;
+
+            _activity ??= new MediaActivity(
+                async () => await (_session?.TryTogglePlayPauseAsync().AsTask() ?? Task.FromResult(false)),
+                async () => await (_session?.TrySkipNextAsync().AsTask() ?? Task.FromResult(false)),
+                async () => await (_session?.TrySkipPreviousAsync().AsTask() ?? Task.FromResult(false)));
+
+            var props = await session.TryGetMediaPropertiesAsync();
+            var key = $"{id}|{props.Title}|{props.Artist}|{props.AlbumTitle}";
+            if (key != _trackKey)
+            {
+                _trackKey = key;
+                _thumb = await StreamImage.LoadAsync(props.Thumbnail);
+                _activity.UpdateTrack(props.Title, props.Artist, _thumb);
+            }
+
+            var playing = session.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+            if (playing != _playing)
+            {
+                _playing = playing;
+                _activity.UpdatePlayback(playing);
+            }
+
+            var timeline = session.GetTimelineProperties();
+            _activity.UpdateTimeline(timeline.Position - timeline.StartTime, timeline.EndTime - timeline.StartTime);
+
+            if (isNewSession)
+            {
+                _announced = true;
+                ActivityChanged?.Invoke(this, new ActivityChangedEventArgs("media", _activity));
+            }
         }
-
-        _session = _manager?.GetCurrentSession();
-        if (_session is null)
+        catch
         {
-            ActivityChanged?.Invoke(this, new ActivityChangedEventArgs("media", null));
-            return;
+            // The session can vanish mid-read; the next poll picks up whatever is current.
         }
-
-        _session.MediaPropertiesChanged += OnMediaProps;
-        _session.PlaybackInfoChanged += OnPlayback;
-        _session.TimelinePropertiesChanged += OnTimeline;
-
-        _activity ??= new MediaActivity(
-            async () => await (_session?.TryTogglePlayPauseAsync().AsTask() ?? Task.FromResult(false)),
-            async () => await (_session?.TrySkipNextAsync().AsTask() ?? Task.FromResult(false)),
-            async () => await (_session?.TrySkipPreviousAsync().AsTask() ?? Task.FromResult(false)));
-
-        await RefreshMediaAsync();
-        RefreshPlayback();
-        RefreshTimeline();
-        ActivityChanged?.Invoke(this, new ActivityChangedEventArgs("media", _activity));
-    }
-
-    private void OnMediaProps(GlobalSystemMediaTransportControlsSession s, object a) => UI(RefreshMediaAsync);
-    private void OnPlayback(GlobalSystemMediaTransportControlsSession s, object a) => UI(() => { RefreshPlayback(); return Task.CompletedTask; });
-    private void OnTimeline(GlobalSystemMediaTransportControlsSession s, object a) => UI(() => { RefreshTimeline(); return Task.CompletedTask; });
-
-    private async Task RefreshMediaAsync()
-    {
-        if (_session is null || _activity is null) return;
-        var props = await _session.TryGetMediaPropertiesAsync();
-        var key = $"{props.Title}|{props.Artist}|{props.AlbumTitle}";
-        if (key != _lastThumbKey)
+        finally
         {
-            _lastThumbKey = key;
-            _lastThumb = await LoadThumbnailAsync(props.Thumbnail);
+            _busy = false;
         }
-        _activity.UpdateTrack(props.Title, props.Artist, _lastThumb);
     }
 
-    private void RefreshPlayback()
+    private void Detach()
     {
-        if (_session is null || _activity is null) return;
-        var status = _session.GetPlaybackInfo().PlaybackStatus;
-        _activity.UpdatePlayback(status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing);
+        if (_session is null) return;
+        _session = null;
+        _sessionId = "";
+        _trackKey = "";
+        _playing = null;
+        _announced = false;
+        ActivityChanged?.Invoke(this, new ActivityChangedEventArgs("media", null));
     }
-
-    private void RefreshTimeline()
-    {
-        if (_session is null || _activity is null) return;
-        var t = _session.GetTimelineProperties();
-        _activity.UpdateTimeline(t.Position - t.StartTime, t.EndTime - t.StartTime);
-    }
-
-    private static Task<ImageSource?> LoadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? reference) =>
-        StreamImage.LoadAsync(reference);
 }
