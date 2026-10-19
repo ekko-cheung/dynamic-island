@@ -38,9 +38,8 @@
             </Border>
             <TextBlock Text="{Binding Title}" Foreground="White" FontSize="12" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" Margin="36,0,30,0"/>
-            <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" Foreground="#FF30D158" FontSize="12"
-                       HorizontalAlignment="Right" VerticalAlignment="Center"
-                       Visibility="{Binding IsPlaying, Converter={x:Static views:BoolToVisibility.Instance}}"/>
+            <views:EqualizerBars BarBrush="#FF30D158" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                 Visibility="{Binding IsPlaying, Converter={x:Static views:BoolToVisibility.Instance}}"/>
         </Grid>
 
         <!-- Expanded: cover, title/artist, progress, controls -->
