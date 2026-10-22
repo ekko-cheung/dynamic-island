@@ -16,6 +16,9 @@ public sealed class AppSettings
     /// <summary>Port of the local HTTP endpoint (127.0.0.1). 0 disables it.</summary>
     public int ApiPort { get; set; } = 17890;
 
+    /// <summary>Device name of the display the island sits on (e.g. \\.\DISPLAY2). Empty means the primary display.</summary>
+    public string Monitor { get; set; } = "";
+
     /// <summary>When true, only notifications from <see cref="AllowedApps"/> are shown.</summary>
     public bool NotificationFilterEnabled { get; set; }
 

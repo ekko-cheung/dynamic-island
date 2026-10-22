@@ -39,7 +39,7 @@ public partial class App : Application
         // Sticky notifications carry a close button, which only the main island has.
         var hub = _hub = new ActivityHub(a =>
             a is NotificationActivity { IsSticky: true } ? IslandSlot.Main : _settings.SlotFor(a.Kind));
-        _window = new IslandWindow(new IslandViewModel(hub));
+        _window = new IslandWindow(new IslandViewModel(hub), _settings);
         _window.Show();
         CreateTray();
         if (e.Args.Contains("--settings")) ShowSettings();
@@ -114,7 +114,8 @@ public partial class App : Application
         }
 
         var packaged = PackageIdentity.IsPackaged;
-        _settingsWindow = new SettingsWindow(_settings, _hub!, packaged, packaged && await GetAutostartAsync(), SetAutostartAsync);
+        _settingsWindow = new SettingsWindow(_settings, _hub!, packaged, packaged && await GetAutostartAsync(), SetAutostartAsync,
+            () => _window?.PositionAtTop());
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }

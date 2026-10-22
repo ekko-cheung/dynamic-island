@@ -27,6 +27,18 @@
                 </StackPanel>
             </Border>
 
+            <!-- 显示器 -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="显示器"/>
+                    <Border Background="#EEEEEE" CornerRadius="8" Padding="2" HorizontalAlignment="Left">
+                        <WrapPanel x:Name="MonitorPanel"/>
+                    </Border>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
+                               Text="灵动岛显示在哪块屏幕的顶部居中。选中的屏幕未连接时,临时回到主显示器。"/>
+                </StackPanel>
+            </Border>
+
             <!-- 通知 -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

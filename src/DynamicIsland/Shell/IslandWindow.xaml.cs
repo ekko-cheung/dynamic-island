@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media.Animation;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using DynamicIsland.Settings;
 using Microsoft.Win32;
 
 namespace DynamicIsland.Shell;
@@ -14,11 +15,13 @@ public partial class IslandWindow : Window
     private static readonly Duration AnimDuration = new(TimeSpan.FromMilliseconds(380));
 
     private readonly IslandViewModel _vm;
+    private readonly AppSettings _settings;
     private readonly DispatcherTimer _fullscreenTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
-    public IslandWindow(IslandViewModel vm)
+    public IslandWindow(IslandViewModel vm, AppSettings settings)
     {
         _vm = vm;
+        _settings = settings;
         DataContext = vm;
         InitializeComponent();
 
@@ -40,6 +43,7 @@ public partial class IslandWindow : Window
         var style = NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE);
         NativeMethods.SetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE,
             style | NativeMethods.WS_EX_NOACTIVATE | NativeMethods.WS_EX_TOOLWINDOW);
+        PositionAtTop();
     }
 
     private void OnWatchTick()
@@ -51,10 +55,25 @@ public partial class IslandWindow : Window
         if (!_vm.IsSuppressed) NativeMethods.BringToTopmost(hwnd);
     }
 
-    private void PositionAtTop()
+    /// <summary>Re-reads the configured display and centers the island at the top of it.</summary>
+    public void PositionAtTop()
     {
-        Left = (SystemParameters.PrimaryScreenWidth - Width) / 2;
-        Top = 6;
+        var monitor = Monitors.Resolve(_settings.Monitor);
+        if (monitor is null) return;
+
+        var hwnd = new WindowInteropHelper(this).EnsureHandle();
+        // Size in physical pixels of the target display, so a move between displays with different scaling lands right.
+        var width = (int)Math.Round(Width * monitor.Scale);
+        var height = (int)Math.Round(Height * monitor.Scale);
+        var x = monitor.Left + ((monitor.Right - monitor.Left) - width) / 2;
+        var y = monitor.Top + (int)Math.Round(6 * monitor.Scale);
+        NativeMethods.Place(hwnd, x, y, width, height);
+    }
+
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+        PositionAtTop();
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)

@@ -14,6 +14,7 @@ internal static class NativeMethods
     private static readonly nint HwndTopmost = -1;
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_NOACTIVATE = 0x0010;
     private const uint SWP_NOOWNERZORDER = 0x0200;
     private const uint SWP_NOSENDCHANGING = 0x0400;
@@ -69,6 +70,10 @@ internal static class NativeMethods
         SetWindowPos(hwnd, HwndTopmost, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
 
+    /// <summary>Moves and sizes the window in physical pixels without activating it.</summary>
+    public static void Place(nint hwnd, int x, int y, int width, int height) =>
+        SetWindowPos(hwnd, nint.Zero, x, y, width, height, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
     /// <summary>
     /// True when the foreground window really covers its whole monitor (video/game fullscreen), or the system reports
     /// D3D fullscreen or presentation mode. QUNS_BUSY is deliberately not used: it stays set for ordinary windows.
@@ -89,8 +94,12 @@ internal static class NativeMethods
         if ((GetWindowLongPtr(hwnd, GWL_STYLE) & WS_CAPTION) == WS_CAPTION) return false;
         if (!GetWindowRect(hwnd, out var window)) return false;
 
+        // A fullscreen window on another display does not cover the island.
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != MonitorFromWindow(ownWindow, MONITOR_DEFAULTTONEAREST)) return false;
+
         var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-        if (!GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), ref info)) return false;
+        if (!GetMonitorInfo(monitor, ref info)) return false;
 
         var m = info.Monitor;
         return window.Left <= m.Left && window.Top <= m.Top && window.Right >= m.Right && window.Bottom >= m.Bottom;

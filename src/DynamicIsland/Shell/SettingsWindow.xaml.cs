@@ -34,16 +34,20 @@ public partial class SettingsWindow : Window
     private readonly AppSettings _settings;
     private readonly ActivityHub _hub;
     private readonly Func<bool, Task<bool>> _setAutostart;
+    private readonly Action _repositionIsland;
 
     public SettingsWindow(AppSettings settings, ActivityHub hub, bool autostartAvailable, bool autostart,
-        Func<bool, Task<bool>> setAutostart)
+        Func<bool, Task<bool>> setAutostart, Action repositionIsland)
     {
+        _repositionIsland = repositionIsland;
         _settings = settings;
         _hub = hub;
         _setAutostart = setAutostart;
         InitializeComponent();
 
         BuildPlacementRows();
+        BuildMonitorRows();
+        Activated += (_, _) => BuildMonitorRows(); // displays may have been plugged in meanwhile
         FilterBox.IsChecked = settings.NotificationFilterEnabled;
         PortBox.Text = settings.ApiPort.ToString();
         AutostartBox.IsChecked = autostart;
@@ -106,6 +110,32 @@ public partial class SettingsWindow : Window
             row.Children.Add(label);
             row.Children.Add(track);
             PlacementPanel.Children.Add(row);
+        }
+    }
+
+    private void BuildMonitorRows()
+    {
+        MonitorPanel.Children.Clear();
+        var segment = (Style)FindResource("Segment");
+        var monitors = Monitors.All();
+        // A saved display that is not connected right now behaves as the primary one, so show it that way.
+        var selected = monitors.Any(m => m.DeviceName == _settings.Monitor && !m.IsPrimary) ? _settings.Monitor : "";
+
+        foreach (var monitor in monitors)
+        {
+            var key = monitor.IsPrimary ? "" : monitor.DeviceName;
+            var radio = new RadioButton
+            {
+                Content = monitor.Label, GroupName = "Monitor", Style = segment, IsChecked = key == selected,
+            };
+            radio.Checked += (_, _) =>
+            {
+                if (_settings.Monitor == key) return;
+                _settings.Monitor = key;
+                _settings.Save();
+                _repositionIsland();
+            };
+            MonitorPanel.Children.Add(radio);
         }
     }
 
