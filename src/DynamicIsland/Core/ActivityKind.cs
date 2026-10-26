@@ -12,4 +12,7 @@ public enum ActivityKind
     Claude,
     Timer,
     Reminder,
+    SystemStats,
+    MemoryStat,
+    NetStat,
 }

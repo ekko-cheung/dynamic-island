@@ -27,6 +27,40 @@
                 </StackPanel>
             </Border>
 
+            <!-- 系统状态 -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="系统状态"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="空闲时显示"/>
+                            <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap"
+                                       Text="主岛没有其他内容时,显示 CPU、内存、上传和下载速度。开启后灵动岛会一直显示;关闭则空闲时隐藏。"/>
+                        </StackPanel>
+                        <CheckBox x:Name="StatsIdleBox" Grid.Column="1" Style="{StaticResource Switch}" Click="StatsBox_Click"/>
+                    </Grid>
+
+                    <Border Height="1" Background="{StaticResource Stroke}" Margin="0,14"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="主岛有内容时在小岛显示"/>
+                            <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap"
+                                       Text="左小岛显示内存占用率,右小岛显示网速;优先级最低,会让位给其他小岛内容。"/>
+                        </StackPanel>
+                        <CheckBox x:Name="StatsBusyBox" Grid.Column="1" Style="{StaticResource Switch}" Click="StatsBox_Click"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- 显示器 -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

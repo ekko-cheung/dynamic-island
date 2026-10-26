@@ -7,6 +7,7 @@ using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Privacy;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
+using DynamicIsland.Providers.SystemStats;
 using DynamicIsland.Providers.Timers;
 using DynamicIsland.Settings;
 using DynamicIsland.Shell;
@@ -53,6 +54,7 @@ public partial class App : Application
         await TryAddProviderAsync(new CapabilityUsageProvider("microphone", new MicrophoneActivity()), "麦克风");
         await TryAddProviderAsync(new CapabilityUsageProvider("webcam", new CameraActivity()), "摄像头");
         await TryAddProviderAsync(new CapabilityUsageProvider("location", new LocationActivity()), "定位");
+        await TryAddProviderAsync(new SystemStatsProvider(_settings, hub), "系统状态");
         var timers = _timers = new TimerReminderProvider(_settings);
         await TryAddProviderAsync(timers, "计时与提醒");
         // Ctrl+Alt+T: the island is hidden when idle, so this is the way in. Silently skipped if another app owns it.

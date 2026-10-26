@@ -19,6 +19,12 @@ public sealed class AppSettings
     /// <summary>Device name of the display the island sits on (e.g. \\.\DISPLAY2). Empty means the primary display.</summary>
     public string Monitor { get; set; } = "";
 
+    /// <summary>Show CPU, memory and network speed on the main island when it has nothing else to show.</summary>
+    public bool ShowStatsWhenIdle { get; set; } = true;
+
+    /// <summary>Show memory and network speed on the small islands while the main island is busy.</summary>
+    public bool ShowStatsWhenBusy { get; set; } = true;
+
     /// <summary>When true, only notifications from <see cref="AllowedApps"/> are shown.</summary>
     public bool NotificationFilterEnabled { get; set; }
 
@@ -41,8 +47,8 @@ public sealed class AppSettings
             return slot;
         return kind switch
         {
-            ActivityKind.Microphone => IslandSlot.Left,
-            ActivityKind.Camera or ActivityKind.Location => IslandSlot.Right,
+            ActivityKind.Microphone or ActivityKind.MemoryStat => IslandSlot.Left,
+            ActivityKind.Camera or ActivityKind.Location or ActivityKind.NetStat => IslandSlot.Right,
             _ => IslandSlot.Main,
         };
     }

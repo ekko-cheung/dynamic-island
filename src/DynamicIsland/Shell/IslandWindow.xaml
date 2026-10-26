@@ -6,6 +6,7 @@
         xmlns:claude="clr-namespace:DynamicIsland.Providers.Claude"
         xmlns:timers="clr-namespace:DynamicIsland.Providers.Timers"
         xmlns:levels="clr-namespace:DynamicIsland.Providers.SystemLevels"
+        xmlns:stats="clr-namespace:DynamicIsland.Providers.SystemStats"
         xmlns:notifications="clr-namespace:DynamicIsland.Providers.Notifications"
         Title="Dynamic Island"
         Width="620" Height="170"
@@ -28,6 +29,9 @@
         </DataTemplate>
         <DataTemplate DataType="{x:Type timers:ReminderActivity}">
             <views:ReminderView IsExpanded="{Binding DataContext.IsExpanded, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type stats:SystemStatsActivity}">
+            <views:SystemStatsView/>
         </DataTemplate>
         <DataTemplate DataType="{x:Type levels:LevelActivity}">
             <views:LevelView/>

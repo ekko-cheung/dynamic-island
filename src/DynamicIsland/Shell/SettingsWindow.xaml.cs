@@ -49,6 +49,8 @@ public partial class SettingsWindow : Window
         BuildMonitorRows();
         Activated += (_, _) => BuildMonitorRows(); // displays may have been plugged in meanwhile
         FilterBox.IsChecked = settings.NotificationFilterEnabled;
+        StatsIdleBox.IsChecked = settings.ShowStatsWhenIdle;
+        StatsBusyBox.IsChecked = settings.ShowStatsWhenBusy;
         PortBox.Text = settings.ApiPort.ToString();
         AutostartBox.IsChecked = autostart;
         AutostartBox.IsEnabled = autostartAvailable;
@@ -111,6 +113,13 @@ public partial class SettingsWindow : Window
             row.Children.Add(track);
             PlacementPanel.Children.Add(row);
         }
+    }
+
+    private void StatsBox_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.ShowStatsWhenIdle = StatsIdleBox.IsChecked == true;
+        _settings.ShowStatsWhenBusy = StatsBusyBox.IsChecked == true;
+        _settings.Save();
     }
 
     private void BuildMonitorRows()

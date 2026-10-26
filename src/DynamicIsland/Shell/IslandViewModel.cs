@@ -5,6 +5,7 @@ using DynamicIsland.Providers.Claude;
 using DynamicIsland.Providers.Media;
 using DynamicIsland.Providers.Notifications;
 using DynamicIsland.Providers.SystemLevels;
+using DynamicIsland.Providers.SystemStats;
 using DynamicIsland.Providers.Timers;
 
 namespace DynamicIsland.Shell;
@@ -98,7 +99,7 @@ public sealed partial class IslandViewModel : ObservableObject
             IsExpanded = true;
             RestartCollapseTimer(ClaudeShowFor);
         }
-        else if (Current is null or LevelActivity)
+        else if (Current is null or LevelActivity or SystemStatsActivity)
         {
             // A level bar is always the compact pill.
             IsExpanded = false;
@@ -132,7 +133,7 @@ public sealed partial class IslandViewModel : ObservableObject
     public void PointerEntered()
     {
         _hovering = true;
-        if (Current is LevelActivity) return;
+        if (Current is LevelActivity or SystemStatsActivity) return;
         _collapseTimer.Stop();
         IsExpanded = true;
     }
