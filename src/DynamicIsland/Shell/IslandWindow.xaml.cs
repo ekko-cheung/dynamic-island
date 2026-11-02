@@ -25,7 +25,11 @@ public partial class IslandWindow : Window
         DataContext = vm;
         InitializeComponent();
 
-        Pill.SizeChanged += (_, _) => Pill.CornerRadius = new CornerRadius(Math.Min(Pill.ActualHeight / 2, 30));
+        Pill.SizeChanged += (_, _) => {
+            // Notch style: flat against the top edge, only the bottom corners are rounded.
+            var r = Math.Min(Pill.ActualHeight * 0.4, 28);
+            Pill.CornerRadius = new CornerRadius(0, 0, r, r);
+        };
         vm.PropertyChanged += OnVmPropertyChanged;
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.Invoke(PositionAtTop);
 
@@ -66,7 +70,7 @@ public partial class IslandWindow : Window
         var width = (int)Math.Round(Width * monitor.Scale);
         var height = (int)Math.Round(Height * monitor.Scale);
         var x = monitor.Left + ((monitor.Right - monitor.Left) - width) / 2;
-        var y = monitor.Top + (int)Math.Round(6 * monitor.Scale);
+        var y = monitor.Top; // flush with the top edge of the display
         NativeMethods.Place(hwnd, x, y, width, height);
     }
 

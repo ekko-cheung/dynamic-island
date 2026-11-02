@@ -51,7 +51,7 @@
                              Visibility="{Binding DataContext.IsLeftVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}"/>
 
         <Border x:Name="Pill" Grid.Column="1" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top"
-                Width="230" Height="38" CornerRadius="19" ClipToBounds="True"
+                Width="230" Height="38" CornerRadius="0,0,15,15" ClipToBounds="True"
                 Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}"
                 MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
             <ContentControl Content="{Binding Current}"/>
