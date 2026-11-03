@@ -73,6 +73,38 @@
                 </StackPanel>
             </Border>
 
+            <!-- 位置 -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="位置"/>
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="50"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="水平偏移" VerticalAlignment="Center"/>
+                        <Slider x:Name="OffsetXSlider" Grid.Column="1" Minimum="-800" Maximum="800" SmallChange="1" LargeChange="20"
+                                IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="Offset_Changed"/>
+                        <TextBlock x:Name="OffsetXText" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="50"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="距顶部" VerticalAlignment="Center"/>
+                        <Slider x:Name="OffsetYSlider" Grid.Column="1" Minimum="0" Maximum="300" SmallChange="1" LargeChange="10"
+                                IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="Offset_Changed"/>
+                        <TextBlock x:Name="OffsetYText" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Button Content="恢复默认(居中贴顶)" HorizontalAlignment="Left" Margin="0,10,0,0" Padding="10,3" Click="OffsetReset_Click"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
+                               Text="单位为像素。距顶部为 0 时是刘海样式;大于 0 时变为悬浮胶囊。位置始终限制在所选屏幕内。"/>
+                </StackPanel>
+            </Border>
+
             <!-- 通知 -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

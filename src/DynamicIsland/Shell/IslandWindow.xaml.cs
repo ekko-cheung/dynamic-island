@@ -25,11 +25,7 @@ public partial class IslandWindow : Window
         DataContext = vm;
         InitializeComponent();
 
-        Pill.SizeChanged += (_, _) => {
-            // Notch style: flat against the top edge, only the bottom corners are rounded.
-            var r = Math.Min(Pill.ActualHeight * 0.4, 28);
-            Pill.CornerRadius = new CornerRadius(0, 0, r, r);
-        };
+        Pill.SizeChanged += (_, _) => UpdateCorners();
         vm.PropertyChanged += OnVmPropertyChanged;
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.Invoke(PositionAtTop);
 
@@ -59,6 +55,14 @@ public partial class IslandWindow : Window
         if (!_vm.IsSuppressed) NativeMethods.BringToTopmost(hwnd);
     }
 
+    private void UpdateCorners()
+    {
+        // Notch style while flush with the top edge (only the bottom corners are rounded); a floating pill otherwise.
+        var r = Math.Min(Pill.ActualHeight * 0.4, 28);
+        var top = _settings.OffsetY > 0 ? r : 0;
+        Pill.CornerRadius = new CornerRadius(top, top, r, r);
+    }
+
     /// <summary>Re-reads the configured display and centers the island at the top of it.</summary>
     public void PositionAtTop()
     {
@@ -69,8 +73,12 @@ public partial class IslandWindow : Window
         // Size in physical pixels of the target display, so a move between displays with different scaling lands right.
         var width = (int)Math.Round(Width * monitor.Scale);
         var height = (int)Math.Round(Height * monitor.Scale);
-        var x = monitor.Left + ((monitor.Right - monitor.Left) - width) / 2;
-        var y = monitor.Top; // flush with the top edge of the display
+        var x = monitor.Left + ((monitor.Right - monitor.Left) - width) / 2 + (int)Math.Round(_settings.OffsetX * monitor.Scale);
+        var y = monitor.Top + (int)Math.Round(_settings.OffsetY * monitor.Scale); // 0 = flush with the top edge
+        // Keep the visible island on this display whatever the offsets say.
+        x = Math.Clamp(x, monitor.Left, Math.Max(monitor.Left, monitor.Right - width));
+        y = Math.Clamp(y, monitor.Top, Math.Max(monitor.Top, monitor.Bottom - height));
+        UpdateCorners();
         NativeMethods.Place(hwnd, x, y, width, height);
     }
 

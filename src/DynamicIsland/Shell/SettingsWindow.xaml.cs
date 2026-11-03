@@ -51,6 +51,10 @@ public partial class SettingsWindow : Window
         FilterBox.IsChecked = settings.NotificationFilterEnabled;
         StatsIdleBox.IsChecked = settings.ShowStatsWhenIdle;
         StatsBusyBox.IsChecked = settings.ShowStatsWhenBusy;
+        OffsetXSlider.Value = settings.OffsetX;
+        OffsetYSlider.Value = settings.OffsetY;
+        OffsetXText.Text = settings.OffsetX.ToString();
+        OffsetYText.Text = settings.OffsetY.ToString();
         PortBox.Text = settings.ApiPort.ToString();
         AutostartBox.IsChecked = autostart;
         AutostartBox.IsEnabled = autostartAvailable;
@@ -120,6 +124,23 @@ public partial class SettingsWindow : Window
         _settings.ShowStatsWhenIdle = StatsIdleBox.IsChecked == true;
         _settings.ShowStatsWhenBusy = StatsBusyBox.IsChecked == true;
         _settings.Save();
+    }
+
+    private void Offset_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!IsLoaded) return; // initial values are set from the settings in the constructor
+        _settings.OffsetX = (int)OffsetXSlider.Value;
+        _settings.OffsetY = (int)OffsetYSlider.Value;
+        OffsetXText.Text = _settings.OffsetX.ToString();
+        OffsetYText.Text = _settings.OffsetY.ToString();
+        _settings.Save();
+        _repositionIsland();
+    }
+
+    private void OffsetReset_Click(object sender, RoutedEventArgs e)
+    {
+        OffsetXSlider.Value = 0;
+        OffsetYSlider.Value = 0;
     }
 
     private void BuildMonitorRows()

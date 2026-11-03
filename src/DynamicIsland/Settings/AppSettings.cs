@@ -19,6 +19,12 @@ public sealed class AppSettings
     /// <summary>Device name of the display the island sits on (e.g. \\.\DISPLAY2). Empty means the primary display.</summary>
     public string Monitor { get; set; } = "";
 
+    /// <summary>Horizontal shift from the display's center, in device-independent pixels (negative = left).</summary>
+    public int OffsetX { get; set; }
+
+    /// <summary>Gap between the island and the top edge of the display, in device-independent pixels. 0 = flush (notch).</summary>
+    public int OffsetY { get; set; }
+
     /// <summary>Show CPU, memory and network speed on the main island when it has nothing else to show.</summary>
     public bool ShowStatsWhenIdle { get; set; } = true;
 
