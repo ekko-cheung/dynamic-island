@@ -47,9 +47,6 @@ public partial class App : Application
 
         // Providers are registered here; add progress providers next to these lines.
         await TryAddProviderAsync(new MediaActivityProvider(), "媒体");
-        // Reading system notifications needs package identity; without it, skip the provider quietly.
-        if (PackageIdentity.IsPackaged)
-            await TryAddProviderAsync(new NotificationActivityProvider(_settings), "通知");
         await TryAddProviderAsync(new SystemLevelProvider(), "音量/亮度");
         await TryAddProviderAsync(new CapabilityUsageProvider("microphone", new MicrophoneActivity()), "麦克风");
         await TryAddProviderAsync(new CapabilityUsageProvider("webcam", new CameraActivity()), "摄像头");
@@ -110,7 +107,6 @@ public partial class App : Application
     {
         if (_settingsWindow is { IsLoaded: true })
         {
-            _settingsWindow.RefreshApps();
             _settingsWindow.Activate();
             return;
         }

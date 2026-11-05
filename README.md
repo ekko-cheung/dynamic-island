@@ -127,7 +127,7 @@ curl -X POST http://127.0.0.1:17890/reminder -H "Content-Type: application/json"
 ```
 src/DynamicIsland/
   Core/        活动抽象:IslandActivity、IActivityProvider、ActivityHub
-  Providers/   活动来源:Media(SMTC)、Notifications(UserNotificationListener)、Api(本地 HTTP)
+  Providers/   活动来源:Media(SMTC)、Api(本地 HTTP)等
   Settings/    JSON 设置(通知白名单等)
   Shell/       胶囊窗口、视图模型、窗口原生调用
   Views/       各类活动对应的视图
@@ -142,7 +142,7 @@ scripts/       打包脚本(package.ps1)
 
 ## 路线图
 
-- [x] 系统通知 / IM 通知(MSIX 包标识 + `UserNotificationListener`)
+- [ ] 系统通知读取(已移除)
 - [x] 通知应用白名单与设置持久化
 - [x] App 通知:本地 HTTP 接入点(`POST /notify`)
 - [x] Claude Code 会话状态(hooks + 本地接口)

@@ -105,47 +105,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- 通知 -->
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="通知"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="仅显示选中应用的通知"/>
-                            <TextBlock Style="{StaticResource Hint}" Text="关闭时显示所有应用的通知"/>
-                        </StackPanel>
-                        <CheckBox x:Name="FilterBox" Grid.Column="1" Style="{StaticResource Switch}" Click="FilterBox_Click"/>
-                    </Grid>
-
-                    <Border Height="1" Background="{StaticResource Stroke}" Margin="0,14"/>
-
-                    <TextBlock Text="允许的应用" Margin="0,0,0,4"/>
-                    <TextBlock x:Name="AppsEmpty" Style="{StaticResource Hint}" Text="应用收到通知后会出现在这里。"/>
-                    <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl x:Name="AppsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,6">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                                   Margin="0,0,12,0"/>
-                                        <CheckBox Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding Allowed, Mode=OneWay}"
-                                                  Click="AppBox_Click"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </StackPanel>
-            </Border>
-
             <!-- Claude Code -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

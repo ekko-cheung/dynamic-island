@@ -10,7 +10,6 @@ namespace DynamicIsland.Shell;
 /// <summary>The settings window. Every change is applied and saved immediately; there is no Apply button.</summary>
 public partial class SettingsWindow : Window
 {
-    private sealed record AppRow(string Id, string Name, bool Allowed);
 
     // Glyphs are Segoe Fluent Icons / MDL2: music, notification, volume, microphone, camera, location, command prompt.
     private static readonly (ActivityKind Kind, string Name, string Glyph)[] Kinds =
@@ -48,7 +47,6 @@ public partial class SettingsWindow : Window
         BuildPlacementRows();
         BuildMonitorRows();
         Activated += (_, _) => BuildMonitorRows(); // displays may have been plugged in meanwhile
-        FilterBox.IsChecked = settings.NotificationFilterEnabled;
         StatsIdleBox.IsChecked = settings.ShowStatsWhenIdle;
         StatsBusyBox.IsChecked = settings.ShowStatsWhenBusy;
         OffsetXSlider.Value = settings.OffsetX;
@@ -59,19 +57,7 @@ public partial class SettingsWindow : Window
         AutostartBox.IsChecked = autostart;
         AutostartBox.IsEnabled = autostartAvailable;
         AutostartHint.Visibility = autostartAvailable ? Visibility.Collapsed : Visibility.Visible;
-        RefreshApps();
         RefreshClaudeHooks();
-    }
-
-    /// <summary>Re-reads the known-apps list, e.g. when the window is brought back to front.</summary>
-    public void RefreshApps()
-    {
-        var rows = _settings.KnownApps
-            .OrderBy(a => a.Value, StringComparer.CurrentCultureIgnoreCase)
-            .Select(a => new AppRow(a.Key, a.Value, _settings.AllowedApps.Contains(a.Key)))
-            .ToList();
-        AppsList.ItemsSource = rows;
-        AppsEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void BuildPlacementRows()
@@ -221,20 +207,6 @@ public partial class SettingsWindow : Window
         {
             RefreshClaudeHooks("操作失败:" + ex.Message, isError: true);
         }
-    }
-
-    private void FilterBox_Click(object sender, RoutedEventArgs e)
-    {
-        _settings.NotificationFilterEnabled = FilterBox.IsChecked == true;
-        _settings.Save();
-    }
-
-    private void AppBox_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not CheckBox { DataContext: AppRow row } box) return;
-        if (box.IsChecked == true) _settings.AllowedApps.Add(row.Id);
-        else _settings.AllowedApps.Remove(row.Id);
-        _settings.Save();
     }
 
     private void PortBox_LostFocus(object sender, RoutedEventArgs e)

@@ -31,15 +31,6 @@ public sealed class AppSettings
     /// <summary>Show memory and network speed on the small islands while the main island is busy.</summary>
     public bool ShowStatsWhenBusy { get; set; } = true;
 
-    /// <summary>When true, only notifications from <see cref="AllowedApps"/> are shown.</summary>
-    public bool NotificationFilterEnabled { get; set; }
-
-    /// <summary>AppUserModelIds of apps whose notifications may be shown.</summary>
-    public HashSet<string> AllowedApps { get; set; } = [];
-
-    /// <summary>Apps we have seen a notification from: AppUserModelId → display name. Feeds the tray menu.</summary>
-    public Dictionary<string, string> KnownApps { get; set; } = [];
-
     /// <summary>Scheduled reminders that have not fired yet.</summary>
     public ObservableCollection<ReminderItem> Reminders { get; set; } = [];
 
@@ -60,8 +51,6 @@ public sealed class AppSettings
     }
 
     public void SetSlot(ActivityKind kind, IslandSlot slot) => Placements[kind.ToString()] = slot.ToString();
-
-    public bool IsAllowed(string appId) => !NotificationFilterEnabled || AllowedApps.Contains(appId);
 
     public static AppSettings Load()
     {
