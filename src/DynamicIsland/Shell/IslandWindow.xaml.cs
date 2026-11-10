@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Interop;
 using System.Windows.Threading;
@@ -73,13 +74,104 @@ public partial class IslandWindow : Window
         // Size in physical pixels of the target display, so a move between displays with different scaling lands right.
         var width = (int)Math.Round(Width * monitor.Scale);
         var height = (int)Math.Round(Height * monitor.Scale);
-        var x = monitor.Left + ((monitor.Right - monitor.Left) - width) / 2 + (int)Math.Round(_settings.OffsetX * monitor.Scale);
+        // Keep the visible pill (not the transparent window around it) on this display whatever the offsets say.
+        var pillWidth = (int)Math.Round(Pill.ActualWidth * monitor.Scale);
+        var pillHeight = (int)Math.Round(Pill.ActualHeight * monitor.Scale);
+        var centerX = (monitor.Left + monitor.Right) / 2 + (int)Math.Round(_settings.OffsetX * monitor.Scale);
+        centerX = Math.Clamp(centerX, monitor.Left + pillWidth / 2, Math.Max(monitor.Left + pillWidth / 2, monitor.Right - pillWidth / 2));
+        var x = centerX - width / 2;
         var y = monitor.Top + (int)Math.Round(_settings.OffsetY * monitor.Scale); // 0 = flush with the top edge
-        // Keep the visible island on this display whatever the offsets say.
-        x = Math.Clamp(x, monitor.Left, Math.Max(monitor.Left, monitor.Right - width));
-        y = Math.Clamp(y, monitor.Top, Math.Max(monitor.Top, monitor.Bottom - height));
+        y = Math.Clamp(y, monitor.Top, Math.Max(monitor.Top, monitor.Bottom - pillHeight));
         UpdateCorners();
         NativeMethods.Place(hwnd, x, y, width, height);
+    }
+
+    // --- Drag to move ---------------------------------------------------------------------------------------------
+    // A press only becomes a drag after the pointer has moved a few pixels, so buttons inside the card still click.
+
+    private const double SnapThreshold = 24; // DIPs
+
+    private bool _dragArmed, _dragging;
+    private int _downX, _downY, _grabDx, _grabDy;
+
+    private void Pill_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!NativeMethods.TryGetCursorPos(out _downX, out _downY)) return;
+        _dragArmed = true;
+        _dragging = false;
+    }
+
+    private void Pill_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_dragArmed) return;
+        if (e.LeftButton != System.Windows.Input.MouseButtonState.Pressed) { EndDrag(save: _dragging); return; }
+        if (!NativeMethods.TryGetCursorPos(out var x, out var y)) return;
+
+        if (!_dragging)
+        {
+            var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+            if (Math.Abs(x - _downX) < SystemParameters.MinimumHorizontalDragDistance * scale
+                && Math.Abs(y - _downY) < SystemParameters.MinimumVerticalDragDistance * scale) return;
+            _dragging = true;
+            Pill.CaptureMouse();
+            // Remember where on the pill it was grabbed, so it does not jump to the cursor.
+            var top = Pill.PointToScreen(new Point(Pill.ActualWidth / 2, 0));
+            _grabDx = _downX - (int)Math.Round(top.X);
+            _grabDy = _downY - (int)Math.Round(top.Y);
+        }
+        DragTo(x, y);
+    }
+
+    private void Pill_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!_dragging) { _dragArmed = false; return; }
+        e.Handled = true; // the release ends a drag; it is not a click on whatever is under the pointer
+        EndDrag(save: true);
+    }
+
+    private void Pill_LostMouseCapture(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (_dragging) EndDrag(save: true);
+    }
+
+    private void EndDrag(bool save)
+    {
+        var wasDragging = _dragging;
+        _dragArmed = _dragging = false;
+        if (wasDragging) Pill.ReleaseMouseCapture();
+        if (save) _settings.Save();
+    }
+
+    /// <summary>Turns a pointer position into offsets from the display's top-center, snapping near its edges.</summary>
+    private void DragTo(int cursorX, int cursorY)
+    {
+        var monitor = Monitors.All().FirstOrDefault(m => cursorX >= m.Left && cursorX < m.Right && cursorY >= m.Top && cursorY < m.Bottom)
+                      ?? Monitors.Resolve(_settings.Monitor);
+        if (monitor is null) return;
+        var scale = monitor.Scale;
+        var monitorWidth = (monitor.Right - monitor.Left) / scale;
+        var monitorHeight = (monitor.Bottom - monitor.Top) / scale;
+
+        var offsetX = ((cursorX - _grabDx - monitor.Left) / scale) - monitorWidth / 2;
+        var offsetY = (cursorY - _grabDy - monitor.Top) / scale;
+
+        var maxX = Math.Max(0, (monitorWidth - Pill.ActualWidth) / 2);
+        var maxY = Math.Max(0, monitorHeight - Pill.ActualHeight);
+        offsetX = Math.Clamp(offsetX, -maxX, maxX);
+        offsetY = Math.Clamp(offsetY, 0, maxY);
+
+        if (_settings.SnapToEdges)
+        {
+            if (Math.Abs(offsetX) < SnapThreshold) offsetX = 0;
+            else if (maxX - Math.Abs(offsetX) < SnapThreshold) offsetX = Math.Sign(offsetX) * maxX;
+            if (offsetY < SnapThreshold) offsetY = 0;
+            else if (maxY - offsetY < SnapThreshold) offsetY = maxY;
+        }
+
+        _settings.Monitor = monitor.IsPrimary ? "" : monitor.DeviceName;
+        _settings.OffsetX = (int)Math.Round(offsetX);
+        _settings.OffsetY = (int)Math.Round(offsetY);
+        PositionAtTop();
     }
 
     protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)

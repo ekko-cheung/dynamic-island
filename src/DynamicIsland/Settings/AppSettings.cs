@@ -25,6 +25,9 @@ public sealed class AppSettings
     /// <summary>Gap between the island and the top edge of the display, in device-independent pixels. 0 = flush (notch).</summary>
     public int OffsetY { get; set; }
 
+    /// <summary>While dragging, snap to the display's edges and center when within a few pixels of them.</summary>
+    public bool SnapToEdges { get; set; } = true;
+
     /// <summary>Show CPU, memory and network speed on the main island when it has nothing else to show.</summary>
     public bool ShowStatsWhenIdle { get; set; } = true;
 

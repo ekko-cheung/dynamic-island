@@ -84,7 +84,7 @@
                             <ColumnDefinition Width="50"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="水平偏移" VerticalAlignment="Center"/>
-                        <Slider x:Name="OffsetXSlider" Grid.Column="1" Minimum="-800" Maximum="800" SmallChange="1" LargeChange="20"
+                        <Slider x:Name="OffsetXSlider" Grid.Column="1" Minimum="-3000" Maximum="3000" SmallChange="1" LargeChange="20"
                                 IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="Offset_Changed"/>
                         <TextBlock x:Name="OffsetXText" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
@@ -95,9 +95,20 @@
                             <ColumnDefinition Width="50"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="距顶部" VerticalAlignment="Center"/>
-                        <Slider x:Name="OffsetYSlider" Grid.Column="1" Minimum="0" Maximum="300" SmallChange="1" LargeChange="10"
+                        <Slider x:Name="OffsetYSlider" Grid.Column="1" Minimum="0" Maximum="2000" SmallChange="1" LargeChange="10"
                                 IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="Offset_Changed"/>
                         <TextBlock x:Name="OffsetYText" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="拖动时吸附边缘"/>
+                            <TextBlock Style="{StaticResource Hint}" Text="直接用鼠标拖动灵动岛即可移动;靠近屏幕边缘或中线时自动吸附"/>
+                        </StackPanel>
+                        <CheckBox x:Name="SnapBox" Grid.Column="1" Style="{StaticResource Switch}" Click="SnapBox_Click"/>
                     </Grid>
                     <Button Content="恢复默认(居中贴顶)" HorizontalAlignment="Left" Margin="0,10,0,0" Padding="10,3" Click="OffsetReset_Click"/>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"

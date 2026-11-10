@@ -49,10 +49,9 @@ public partial class SettingsWindow : Window
         Activated += (_, _) => BuildMonitorRows(); // displays may have been plugged in meanwhile
         StatsIdleBox.IsChecked = settings.ShowStatsWhenIdle;
         StatsBusyBox.IsChecked = settings.ShowStatsWhenBusy;
-        OffsetXSlider.Value = settings.OffsetX;
-        OffsetYSlider.Value = settings.OffsetY;
-        OffsetXText.Text = settings.OffsetX.ToString();
-        OffsetYText.Text = settings.OffsetY.ToString();
+        SnapBox.IsChecked = settings.SnapToEdges;
+        SyncOffsets();
+        Activated += (_, _) => SyncOffsets(); // the island may have been dragged meanwhile
         PortBox.Text = settings.ApiPort.ToString();
         AutostartBox.IsChecked = autostart;
         AutostartBox.IsEnabled = autostartAvailable;
@@ -112,9 +111,24 @@ public partial class SettingsWindow : Window
         _settings.Save();
     }
 
+    private void SyncOffsets()
+    {
+        OffsetXSlider.Value = _settings.OffsetX;
+        OffsetYSlider.Value = _settings.OffsetY;
+        OffsetXText.Text = _settings.OffsetX.ToString();
+        OffsetYText.Text = _settings.OffsetY.ToString();
+    }
+
+    private void SnapBox_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.SnapToEdges = SnapBox.IsChecked == true;
+        _settings.Save();
+    }
+
     private void Offset_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (!IsLoaded) return; // initial values are set from the settings in the constructor
+        if ((int)OffsetXSlider.Value == _settings.OffsetX && (int)OffsetYSlider.Value == _settings.OffsetY) return;
         _settings.OffsetX = (int)OffsetXSlider.Value;
         _settings.OffsetY = (int)OffsetYSlider.Value;
         OffsetXText.Text = _settings.OffsetX.ToString();

@@ -39,6 +39,21 @@ internal static class NativeMethods
     private static extern bool GetWindowRect(nint hWnd, out Rect rect);
 
     [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out CursorPoint point);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CursorPoint { public int X, Y; }
+
+    /// <summary>Cursor position in physical screen pixels (stable while the window moves under it).</summary>
+    public static bool TryGetCursorPos(out int x, out int y)
+    {
+        var ok = GetCursorPos(out var p);
+        x = p.X;
+        y = p.Y;
+        return ok;
+    }
+
+    [DllImport("user32.dll")]
     private static extern nint MonitorFromWindow(nint hWnd, uint flags);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

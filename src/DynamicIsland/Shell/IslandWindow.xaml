@@ -53,7 +53,9 @@
         <Border x:Name="Pill" Grid.Column="1" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top"
                 Width="230" Height="38" CornerRadius="0,0,15,15" ClipToBounds="True"
                 Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}"
-                MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
+                MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave"
+                PreviewMouseLeftButtonDown="Pill_PreviewMouseLeftButtonDown" PreviewMouseMove="Pill_PreviewMouseMove"
+                PreviewMouseLeftButtonUp="Pill_PreviewMouseLeftButtonUp" LostMouseCapture="Pill_LostMouseCapture">
             <ContentControl Content="{Binding Current}"/>
         </Border>
 
