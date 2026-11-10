@@ -53,8 +53,9 @@ internal sealed class GlassBackdrop : Window
             NativeMethods.HideWindow(_hwnd);
             return;
         }
-        // The window's own rounded corners are all four; the overscan pushes the top pair off the screen for the flat notch top.
-        NativeMethods.PlaceBelow(_hwnd, island, s.Left, s.Top - s.Overscan, s.Right - s.Left + 1, s.Bottom - s.Top + 1 + s.Overscan);
+        // The window's own rounding hits all four corners; the overscan pushes the flat side(s) off the screen.
+        NativeMethods.PlaceBelow(_hwnd, island, s.Left - s.OverLeft, s.Top - s.OverTop,
+            s.Right - s.Left + 1 + s.OverLeft + s.OverRight, s.Bottom - s.Top + 1 + s.OverTop);
     }
 
     /// <summary>Re-seats the backdrop right under the island after something else was raised above it.</summary>
@@ -64,5 +65,5 @@ internal sealed class GlassBackdrop : Window
     }
 }
 
-/// <summary>The area of one pill in physical screen pixels. <see cref="Overscan"/> extends it above the top edge, for the flat notch top.</summary>
-internal readonly record struct GlassShape(int Left, int Top, int Right, int Bottom, int Overscan);
+/// <summary>The area of one pill in physical screen pixels. The Over* values extend it past the screen edge it is flush with, so that edge stays flat.</summary>
+internal readonly record struct GlassShape(int Left, int Top, int Right, int Bottom, int OverTop, int OverLeft, int OverRight);

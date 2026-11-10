@@ -25,6 +25,9 @@ public sealed class AppSettings
     /// <summary>Gap between the island and the top edge of the display, in device-independent pixels. 0 = flush (notch).</summary>
     public int OffsetY { get; set; }
 
+    /// <summary>"Left" or "Right" when the island is docked to that edge of the display (stacked layout); empty at the top.</summary>
+    public string Dock { get; set; } = "";
+
     /// <summary>While dragging, snap to the display's edges and center when within a few pixels of them.</summary>
     public bool SnapToEdges { get; set; } = true;
 

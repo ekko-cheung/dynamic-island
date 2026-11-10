@@ -137,6 +137,7 @@ public partial class SettingsWindow : Window
     {
         if (!IsLoaded) return; // initial values are set from the settings in the constructor
         if ((int)OffsetXSlider.Value == _settings.OffsetX && (int)OffsetYSlider.Value == _settings.OffsetY) return;
+        if (_settings.OffsetX != (int)OffsetXSlider.Value) _settings.Dock = ""; // moving sideways leaves the side edge
         _settings.OffsetX = (int)OffsetXSlider.Value;
         _settings.OffsetY = (int)OffsetYSlider.Value;
         OffsetXText.Text = _settings.OffsetX.ToString();
@@ -147,8 +148,10 @@ public partial class SettingsWindow : Window
 
     private void OffsetReset_Click(object sender, RoutedEventArgs e)
     {
+        _settings.Dock = "";
         OffsetXSlider.Value = 0;
         OffsetYSlider.Value = 0;
+        _repositionIsland();
     }
 
     private void BuildMonitorRows()

@@ -14,6 +14,7 @@
         ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize" ShowActivated="False">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <views:VerticalTemplateSelector x:Key="VerticalSelector"/>
         <!-- One DataTemplate per activity type; new providers add theirs here. -->
         <DataTemplate DataType="{x:Type media:MediaActivity}">
             <views:MediaView IsExpanded="{Binding DataContext.IsExpanded, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -40,7 +41,7 @@
 
     <!-- Transparent window area is click-through; only the pills take input.
          The star columns keep the main pill centered while the small islands hug its sides. -->
-    <Grid VerticalAlignment="Top">
+    <Grid x:Name="Root" VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
@@ -56,7 +57,22 @@
                 MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave"
                 PreviewMouseLeftButtonDown="Pill_PreviewMouseLeftButtonDown" PreviewMouseMove="Pill_PreviewMouseMove"
                 PreviewMouseLeftButtonUp="Pill_PreviewMouseLeftButtonUp" LostMouseCapture="Pill_LostMouseCapture">
-            <ContentControl Content="{Binding Current}"/>
+            <ContentControl Content="{Binding Current}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Style.Triggers>
+                            <!-- Docked to a side edge and collapsed: the stacked compact layouts. -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsVertical}" Value="True"/>
+                                    <Condition Binding="{Binding IsExpanded}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="ContentTemplateSelector" Value="{StaticResource VerticalSelector}"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
         </Border>
 
         <views:SatelliteView x:Name="RightIsland" Grid.Column="2" DataContext="{Binding Right}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,0,0,0"

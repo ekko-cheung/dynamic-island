@@ -34,6 +34,7 @@ public sealed partial class IslandViewModel : ObservableObject
 
     [ObservableProperty] private IslandActivity? _current;
     [ObservableProperty] private bool _isExpanded;
+    [ObservableProperty] private bool _isVertical; // docked to a side edge: compact content is stacked top to bottom
     [ObservableProperty] private bool _isSuppressed; // e.g. a fullscreen app is in front
 
     // The small islands beside the main one; compact only.
