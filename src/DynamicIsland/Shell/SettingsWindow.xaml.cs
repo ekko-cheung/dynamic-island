@@ -50,6 +50,7 @@ public partial class SettingsWindow : Window
         StatsIdleBox.IsChecked = settings.ShowStatsWhenIdle;
         StatsBusyBox.IsChecked = settings.ShowStatsWhenBusy;
         SnapBox.IsChecked = settings.SnapToEdges;
+        GlassBox.IsChecked = settings.FrostedGlass;
         SyncOffsets();
         Activated += (_, _) => SyncOffsets(); // the island may have been dragged meanwhile
         PortBox.Text = settings.ApiPort.ToString();
@@ -117,6 +118,13 @@ public partial class SettingsWindow : Window
         OffsetYSlider.Value = _settings.OffsetY;
         OffsetXText.Text = _settings.OffsetX.ToString();
         OffsetYText.Text = _settings.OffsetY.ToString();
+    }
+
+    private void GlassBox_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.FrostedGlass = GlassBox.IsChecked == true;
+        _settings.Save();
+        _repositionIsland();
     }
 
     private void SnapBox_Click(object sender, RoutedEventArgs e)

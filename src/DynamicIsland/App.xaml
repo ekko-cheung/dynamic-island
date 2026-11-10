@@ -2,5 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
-    <Application.Resources/>
+    <Application.Resources>
+        <SolidColorBrush x:Key="IslandBackground" Color="Black"/>
+        <CornerRadius x:Key="SatelliteCorner">0,0,15,15</CornerRadius>
+    </Application.Resources>
 </Application>

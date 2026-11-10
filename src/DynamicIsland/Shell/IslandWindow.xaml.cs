@@ -26,7 +26,12 @@ public partial class IslandWindow : Window
         DataContext = vm;
         InitializeComponent();
 
-        Pill.SizeChanged += (_, _) => UpdateCorners();
+        Pill.SizeChanged += (_, _) => { UpdateCorners(); ApplyGlass(); };
+        LeftIsland.SizeChanged += (_, _) => ApplyGlass();
+        RightIsland.SizeChanged += (_, _) => ApplyGlass();
+        LeftIsland.IsVisibleChanged += (_, _) => ApplyGlass();
+        RightIsland.IsVisibleChanged += (_, _) => ApplyGlass();
+        Pill.IsVisibleChanged += (_, _) => ApplyGlass();
         vm.PropertyChanged += OnVmPropertyChanged;
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.Invoke(PositionAtTop);
 
@@ -51,15 +56,23 @@ public partial class IslandWindow : Window
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == nint.Zero) return;
-        _vm.IsSuppressed = NativeMethods.IsFullscreenAppActive(hwnd);
+        var suppressed = NativeMethods.IsFullscreenAppActive(hwnd);
+        var changed = suppressed != _vm.IsSuppressed;
+        _vm.IsSuppressed = suppressed;
+        if (changed) ApplyGlass();
         // Other windows (a browser opened later, another topmost app) can end up above the island.
-        if (!_vm.IsSuppressed) NativeMethods.BringToTopmost(hwnd);
+        if (!_vm.IsSuppressed)
+        {
+            NativeMethods.BringToTopmost(hwnd);
+            foreach (var backdrop in _backdrops) backdrop?.KeepUnder(hwnd);
+        }
     }
 
     private void UpdateCorners()
     {
         // Notch style while flush with the top edge (only the bottom corners are rounded); a floating pill otherwise.
-        var r = Math.Min(Pill.ActualHeight * 0.4, 28);
+        _cornersForGlass = _settings.FrostedGlass;
+        var r = _settings.FrostedGlass ? GlassCorner : Math.Min(Pill.ActualHeight * 0.4, 28);
         var top = _settings.OffsetY > 0 ? r : 0;
         Pill.CornerRadius = new CornerRadius(top, top, r, r);
     }
@@ -84,6 +97,7 @@ public partial class IslandWindow : Window
         y = Math.Clamp(y, monitor.Top, Math.Max(monitor.Top, monitor.Bottom - pillHeight));
         UpdateCorners();
         NativeMethods.Place(hwnd, x, y, width, height);
+        ApplyGlass();
     }
 
     // --- Drag to move ---------------------------------------------------------------------------------------------
@@ -172,6 +186,75 @@ public partial class IslandWindow : Window
         _settings.OffsetX = (int)Math.Round(offsetX);
         _settings.OffsetY = (int)Math.Round(offsetY);
         PositionAtTop();
+    }
+
+    // --- Frosted glass ---------------------------------------------------------------------------------------------
+
+    private static readonly Brush SolidBackground = Freeze(Brushes.Black);
+    // Almost invisible, but not fully: a fully transparent pixel would let clicks fall through to the backdrop.
+    private static readonly Brush GlassBackground = Freeze(new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)));
+
+    // One backdrop per pill, so the gaps between the main pill and the small islands stay clear.
+    private GlassBackdrop?[] _backdrops = [null, null, null];
+
+    private static Brush Freeze(Brush brush)
+    {
+        brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>Corner radius of the glass pills. The backdrop windows get the system's own rounding, which is this size.</summary>
+    private const double GlassCorner = 8;
+
+    /// <summary>Applies the frosted-glass setting: blurred backdrop windows under the pills, and a see-through fill on them.</summary>
+    private void ApplyGlass()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == nint.Zero) return;
+        var on = _settings.FrostedGlass;
+        Application.Current.Resources["IslandBackground"] = on ? GlassBackground : SolidBackground;
+        Application.Current.Resources["SatelliteCorner"] = new CornerRadius(0, 0, on ? GlassCorner : 15, on ? GlassCorner : 15);
+
+        var elements = new FrameworkElement[] { LeftIsland, Pill, RightIsland };
+        for (var i = 0; i < elements.Length; i++)
+        {
+            if (!on)
+            {
+                _backdrops[i]?.Close();
+                _backdrops[i] = null;
+                continue;
+            }
+            if (_backdrops[i] is null)
+            {
+                _backdrops[i] = new GlassBackdrop();
+                _backdrops[i]!.Show();
+            }
+            _backdrops[i]!.Update(hwnd, Outline(elements[i]));
+        }
+        if (_settings.FrostedGlass != _cornersForGlass) UpdateCorners();
+    }
+
+    private bool _cornersForGlass;
+
+    /// <summary>The area one pill covers in physical screen pixels, or null while it is hidden.</summary>
+    private GlassShape? Outline(FrameworkElement element)
+    {
+        if (_vm.IsSuppressed || !element.IsVisible || element.ActualWidth < 1 || element.ActualHeight < 1) return null;
+        var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var origin = element.PointToScreen(new Point(0, 0));
+        var left = (int)Math.Round(origin.X);
+        var top = (int)Math.Round(origin.Y);
+        var right = left + (int)Math.Round(element.ActualWidth * scale) - 1;
+        var bottom = top + (int)Math.Round(element.ActualHeight * scale) - 1;
+        // Notch style: push the rounded top corners out of the window so the top edge stays flat.
+        var overscan = _settings.OffsetY <= 0 ? (int)Math.Ceiling(GlassCorner * scale) + 2 : 0;
+        return new GlassShape(left, top, right, bottom, overscan);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        foreach (var backdrop in _backdrops) backdrop?.Close();
+        base.OnClosed(e);
     }
 
     protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)

@@ -61,6 +61,24 @@
                 </StackPanel>
             </Border>
 
+            <!-- 外观 -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="外观"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="毛玻璃效果"/>
+                            <TextBlock Style="{StaticResource Hint}" Text="模糊灵动岛背后的内容;关闭时为纯黑"/>
+                        </StackPanel>
+                        <CheckBox x:Name="GlassBox" Grid.Column="1" Style="{StaticResource Switch}" Click="GlassBox_Click"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- 显示器 -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

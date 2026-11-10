@@ -28,6 +28,9 @@ public sealed class AppSettings
     /// <summary>While dragging, snap to the display's edges and center when within a few pixels of them.</summary>
     public bool SnapToEdges { get; set; } = true;
 
+    /// <summary>Blur whatever is behind the island instead of drawing it solid black.</summary>
+    public bool FrostedGlass { get; set; }
+
     /// <summary>Show CPU, memory and network speed on the main island when it has nothing else to show.</summary>
     public bool ShowStatsWhenIdle { get; set; } = true;
 

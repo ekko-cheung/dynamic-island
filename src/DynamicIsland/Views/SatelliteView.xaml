@@ -85,7 +85,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Border Background="Black" Height="38" MinWidth="38" CornerRadius="0,0,15,15" ClipToBounds="True" MouseLeftButtonUp="Satellite_Click">
+    <Border Background="{DynamicResource IslandBackground}" Height="38" MinWidth="38" CornerRadius="{DynamicResource SatelliteCorner}" ClipToBounds="True" MouseLeftButtonUp="Satellite_Click">
         <ContentControl Content="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Border>
 </UserControl>
